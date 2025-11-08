@@ -6,44 +6,52 @@ class AuthManager {
     }
 
     async init() {
-        // Wait for Supabase to be available
-        if (!window.supabase) {
-            console.log('Waiting for Supabase to load...');
-            setTimeout(() => this.init(), 100);
+    // Wait for Supabase to be available with a timeout
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    while (!window.supabase && attempts < maxAttempts) {
+        console.log('⏳ Waiting for Supabase to load... attempt', attempts + 1);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        attempts++;
+    }
+
+    if (!window.supabase) {
+        console.error('❌ Supabase not loaded after maximum attempts');
+        return;
+    }
+
+    try {
+        console.log('🔐 Checking authentication status...');
+        const { data: { session }, error } = await window.supabase.auth.getSession();
+        
+        if (error) {
+            console.error('Session error:', error);
             return;
         }
 
-        try {
-            // Check current auth status
-            const { data: { session }, error } = await window.supabase.auth.getSession();
-            
-            if (error) {
-                console.error('Session error:', error);
-                return;
-            }
-
+        this.currentUser = session?.user || null;
+        this.isInitialized = true;
+        
+        console.log('✅ Auth initialized. User:', this.currentUser?.email || 'Not logged in');
+        this.updateUI();
+        
+        // Listen for auth changes
+        window.supabase.auth.onAuthStateChange((event, session) => {
+            console.log('🔄 Auth state changed:', event, session?.user?.email || 'No user');
             this.currentUser = session?.user || null;
-            this.isInitialized = true;
-            
-            console.log('Auth initialized. User:', this.currentUser?.email);
             this.updateUI();
             
-            // Listen for auth changes
-            window.supabase.auth.onAuthStateChange((event, session) => {
-                console.log('Auth state changed:', event, session?.user?.email);
-                this.currentUser = session?.user || null;
-                this.updateUI();
-                
-                // Trigger cart reload if on cart page
-                if (window.cartManager && event === 'SIGNED_IN') {
-                    window.cartManager.loadCartItems();
-                }
-            });
-            
-        } catch (error) {
-            console.error('Auth initialization error:', error);
-        }
+            // Trigger cart reload if on cart page
+            if (window.cartManager && event === 'SIGNED_IN') {
+                window.cartManager.loadCartItems();
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Auth initialization error:', error);
     }
+}
 
     updateUI() {
         const authButtons = document.getElementById('auth-buttons');
