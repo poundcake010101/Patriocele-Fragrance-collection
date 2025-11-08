@@ -1,8 +1,0 @@
-{
-  "name": "netlify-functions",
-  "version": "1.0.0",
-  "description": "Netlify functions for Patriocele Fragrance Collection",
-  "dependencies": {
-    "@supabase/supabase-js": "^2.38.0"
-  }
-}

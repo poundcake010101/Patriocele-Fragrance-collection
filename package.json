@@ -1,0 +1,13 @@
+{
+  "name": "patriocele-fragrance-collection",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Patriocele Fragrance Collection website and functions",
+  "scripts": {
+    "start": "echo \"No start script needed for Netlify\"",
+    "build": "echo \"No build process needed\""
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0"
+  }
+}
