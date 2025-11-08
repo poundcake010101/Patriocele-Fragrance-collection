@@ -225,7 +225,7 @@ class CheckoutManager {
         const returnUrl = `${window.location.origin}/order-success.html?order_id=${order.id}`;
         const cancelUrl = `${window.location.origin}/checkout.html?cancelled=true&order_id=${order.id}`;
         
-        // PayFast payment data
+        // PayFast payment data - SIMPLIFIED VERSION
         const paymentData = {
             // 🔑 PAYFAST TEST CREDENTIALS
             merchant_id: '10043505',        // PayFast test merchant ID
@@ -233,19 +233,19 @@ class CheckoutManager {
             
             return_url: returnUrl,
             cancel_url: cancelUrl,
-            notify_url: `${window.location.origin}/.netlify/functions/payfast-notify`,
+            // notify_url: `${window.location.origin}/.netlify/functions/payfast-notify`, // Remove for now
             
             // Buyer details
-            name_first: shippingData.get('firstName') || 'Test',
-            name_last: shippingData.get('lastName') || 'Customer',
-            email_address: shippingData.get('email') || user?.email || 'test@example.com',
-            cell_number: shippingData.get('phone') || '+27123456789',
+            name_first: (shippingData.get('firstName') || 'Test').substring(0, 100),
+            name_last: (shippingData.get('lastName') || 'Customer').substring(0, 100),
+            email_address: (shippingData.get('email') || user?.email || 'test@example.com').substring(0, 100),
+            cell_number: (shippingData.get('phone') || '+27123456789').substring(0, 20),
             
             // Order details
             m_payment_id: order.id.toString(),
             amount: amount.toFixed(2),
-            item_name: `LuxeScents Order #${order.id}`,
-            item_description: `${this.cartItems.length} perfume item(s)`,
+            item_name: `LuxeScents Order #${order.id}`.substring(0, 100),
+            item_description: `${this.cartItems.length} perfume item(s)`.substring(0, 255),
             
             // Custom data for tracking
             custom_int1: order.id,
@@ -260,17 +260,19 @@ class CheckoutManager {
 
     generatePayFastUrl(paymentData) {
         // PayFast Sandbox URL for testing
-        const baseUrl = '	https://sandbox.payfast.co.za/eng/process';
+        const baseUrl = 'https://sandbox.payfast.co.za/eng/process?';
         const params = new URLSearchParams();
         
         // Add all payment data as parameters
         Object.keys(paymentData).forEach(key => {
-            if (paymentData[key]) {
+            if (paymentData[key] && paymentData[key] !== '') {
                 params.append(key, paymentData[key].toString());
             }
         });
         
-        return baseUrl + params.toString();
+        const url = baseUrl + params.toString();
+        console.log('Generated PayFast URL:', url);
+        return url;
     }
 }
 

@@ -1,0 +1,15 @@
+[build]
+  publish = "frontend"
+  command = "echo 'No build process needed for static site'"
+
+[functions]
+  directory = "netlify-functions"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Environment variables
+[build.environment]
+  NODE_VERSION = "18"
