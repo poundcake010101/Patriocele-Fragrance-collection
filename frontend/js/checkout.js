@@ -244,7 +244,7 @@ class CheckoutManager {
             // Order details
             m_payment_id: order.id.toString(),
             amount: amount.toFixed(2),
-            item_name: `LuxeScents Order #${order.id}`.substring(0, 100),
+            item_name: `Patriocele Fragrance Order #${order.id}`.substring(0, 100),
             item_description: `${this.cartItems.length} perfume item(s)`.substring(0, 255),
             
             // Custom data for tracking
