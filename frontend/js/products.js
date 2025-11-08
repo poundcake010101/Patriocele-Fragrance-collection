@@ -14,7 +14,7 @@ class ProductManager {
     }
 
     async loadCategories() {
-        const { data, error } = await supabase
+        const { data, error } = await window.supabase
             .from('categories')
             .select('*')
             .order('name');
@@ -26,7 +26,7 @@ class ProductManager {
     }
 
     async loadBrands() {
-        const { data, error } = await supabase
+        const { data, error } = await window.supabase
             .from('brands')
             .select('*')
             .order('name');
@@ -38,7 +38,7 @@ class ProductManager {
     }
 
     async loadProducts(filters = {}) {
-        let query = supabase
+        let query = window.supabase
             .from('products')
             .select(`
                 *,
@@ -66,6 +66,7 @@ class ProductManager {
             this.renderProducts();
         }
     }
+
     async loadFeaturedProducts() {
         const { data, error } = await window.supabase
             .from('products')
@@ -80,6 +81,8 @@ class ProductManager {
 
     renderCategories() {
         const select = document.getElementById('category-filter');
+        if (!select) return;
+        
         this.categories.forEach(category => {
             const option = document.createElement('option');
             option.value = category.id;
@@ -90,6 +93,8 @@ class ProductManager {
 
     renderBrands() {
         const select = document.getElementById('brand-filter');
+        if (!select) return;
+        
         this.brands.forEach(brand => {
             const option = document.createElement('option');
             option.value = brand.id;
@@ -100,6 +105,8 @@ class ProductManager {
 
     renderProducts() {
         const grid = document.getElementById('products-grid');
+        if (!grid) return;
+        
         grid.innerHTML = '';
 
         this.products.forEach(product => {
@@ -107,30 +114,34 @@ class ProductManager {
             grid.appendChild(productCard);
         });
     }
-    
-     renderFeaturedProducts(products) {
+
+    renderFeaturedProducts(products) {
         const featuredSection = document.getElementById('featured-products');
         if (!featuredSection) return;
 
-        let html = '<h2>Featured Fragrances</h2><div class="products-grid">';
+        let html = '';
         
         products.forEach(product => {
             const mainImage = product.images?.[0] || 'https://via.placeholder.com/300x300?text=Perfume';
-            const price = product.size_variants ? Object.values(product.size_variants)[0] : product.price;
+            const sizes = product.size_variants ? Object.keys(product.size_variants) : [];
+            const firstSize = sizes.length > 0 ? sizes[0] : '50ml';
+            const firstPrice = firstSize ? product.size_variants[firstSize] : product.price;
 
             html += `
                 <div class="product-card">
                     <img src="${mainImage}" alt="${product.name}" class="product-image">
                     <h3>${product.name}</h3>
-                    <div class="price">$${price}</div>
-                    <button class="btn-primary add-to-cart" data-product-id="${product.id}">
+                    <p class="product-description">${product.description?.substring(0, 60)}...</p>
+                    <div class="price">R${firstPrice}</div>
+                    <button class="btn-primary add-to-cart-btn" 
+                            data-product-id="${product.id}"
+                            data-size-variant="${firstSize}">
                         Add to Cart
                     </button>
                 </div>
             `;
         });
 
-        html += '</div>';
         featuredSection.innerHTML = html;
     }
 
@@ -138,12 +149,9 @@ class ProductManager {
         const card = document.createElement('div');
         card.className = 'product-card';
         
-        const mainImage = product.images && product.images.length > 0 
-            ? product.images[0] 
-            : 'https://via.placeholder.com/300x300?text=Perfume';
-
+        const mainImage = product.images?.[0] || 'https://via.placeholder.com/300x300?text=Perfume';
         const sizes = product.size_variants ? Object.keys(product.size_variants) : [];
-        const firstSize = sizes.length > 0 ? sizes[0] : null;
+        const firstSize = sizes.length > 0 ? sizes[0] : '50ml';
         const firstPrice = firstSize ? product.size_variants[firstSize] : product.price;
 
         card.innerHTML = `
@@ -153,19 +161,16 @@ class ProductManager {
             <div class="fragrance-notes">
                 ${this.renderFragranceNotes(product.fragrance_notes)}
             </div>
-            <div class="price">$${firstPrice}</div>
+            <div class="price">R${firstPrice}</div>
             <div class="size-variants">
                 ${this.renderSizeVariants(product.size_variants)}
             </div>
-            <button class="btn-primary add-to-cart" data-product-id="${product.id}">
+            <button class="btn-primary add-to-cart-btn" 
+                    data-product-id="${product.id}"
+                    data-size-variant="${firstSize}">
                 Add to Cart
             </button>
         `;
-
-        // Add event listener to add-to-cart button
-        card.querySelector('.add-to-cart').addEventListener('click', () => {
-            this.addToCart(product.id, firstSize);
-        });
 
         return card;
     }
@@ -189,14 +194,14 @@ class ProductManager {
         
         let html = '<select class="size-select">';
         Object.keys(sizeVariants).forEach(size => {
-            html += `<option value="${size}">${size} - $${sizeVariants[size]}</option>`;
+            html += `<option value="${size}">${size} - R${sizeVariants[size]}</option>`;
         });
         html += '</select>';
         return html;
     }
 
     async addToCart(productId, sizeVariant = '50ml') {
-        const user = authManager.getCurrentUser();
+        const user = window.authManager?.getCurrentUser();
         
         if (!user) {
             alert('Please login to add items to cart');
@@ -206,7 +211,7 @@ class ProductManager {
 
         try {
             // Check if item already in cart
-            const { data: existingItem } = await supabase
+            const { data: existingItem } = await window.supabase
                 .from('cart_items')
                 .select('id, quantity')
                 .eq('user_id', user.id)
@@ -216,7 +221,7 @@ class ProductManager {
 
             if (existingItem) {
                 // Update quantity
-                const { error } = await supabase
+                const { error } = await window.supabase
                     .from('cart_items')
                     .update({ quantity: existingItem.quantity + 1 })
                     .eq('id', existingItem.id);
@@ -224,12 +229,12 @@ class ProductManager {
                 if (error) throw error;
             } else {
                 // Add new item
-                const { error } = await supabase
+                const { error } = await window.supabase
                     .from('cart_items')
                     .insert([
                         {
                             user_id: user.id,
-                            product_id: productId,
+                            product_id: parseInt(productId),
                             quantity: 1,
                             size_variant: sizeVariant
                         }
@@ -239,32 +244,72 @@ class ProductManager {
             }
 
             alert('Product added to cart!');
-            authManager.updateCartCount();
+            
+            // Update cart count in navbar
+            if (window.authManager) {
+                window.authManager.updateCartCount();
+            }
+            
         } catch (error) {
             console.error('Error adding to cart:', error);
-            alert('Error adding product to cart');
+            alert('Error adding product to cart: ' + error.message);
         }
     }
 
     setupEventListeners() {
-        document.getElementById('category-filter').addEventListener('change', (e) => {
-            this.applyFilters();
+        // Handle filter changes
+        const categoryFilter = document.getElementById('category-filter');
+        const brandFilter = document.getElementById('brand-filter');
+        const searchInput = document.getElementById('search-input');
+
+        if (categoryFilter) {
+            categoryFilter.addEventListener('change', (e) => {
+                this.applyFilters();
+            });
+        }
+
+        if (brandFilter) {
+            brandFilter.addEventListener('change', (e) => {
+                this.applyFilters();
+            });
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.applyFilters();
+            });
+        }
+
+        // Handle add to cart clicks globally
+        document.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('add-to-cart-btn')) {
+                e.preventDefault();
+                await this.addToCart(
+                    e.target.dataset.productId,
+                    e.target.dataset.sizeVariant
+                );
+            }
         });
 
-        document.getElementById('brand-filter').addEventListener('change', (e) => {
-            this.applyFilters();
-        });
-
-        document.getElementById('search-input').addEventListener('input', (e) => {
-            this.applyFilters();
+        // Handle size selection changes
+        document.addEventListener('change', async (e) => {
+            if (e.target.classList.contains('size-select')) {
+                const productCard = e.target.closest('.product-card');
+                const productId = productCard?.dataset?.productId;
+                const addToCartBtn = productCard?.querySelector('.add-to-cart-btn');
+                
+                if (productId && addToCartBtn) {
+                    addToCartBtn.dataset.sizeVariant = e.target.value;
+                }
+            }
         });
     }
 
     applyFilters() {
         const filters = {
-            category: document.getElementById('category-filter').value,
-            brand: document.getElementById('brand-filter').value,
-            search: document.getElementById('search-input').value
+            category: document.getElementById('category-filter')?.value || '',
+            brand: document.getElementById('brand-filter')?.value || '',
+            search: document.getElementById('search-input')?.value || ''
         };
 
         this.loadProducts(filters);
