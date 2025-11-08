@@ -1,8 +1,7 @@
 class CheckoutManager {
     constructor() {
         this.cartItems = [];
-        this.stripe = null;
-        this.elements = null;
+        this.currency = 'ZAR';
         this.init();
     }
 
@@ -16,7 +15,6 @@ class CheckoutManager {
         }
 
         await this.loadCartItems();
-        this.setupStripe();
         this.setupEventListeners();
         this.prefillUserInfo();
     }
@@ -80,7 +78,7 @@ class CheckoutManager {
                         <h4>${product.name}</h4>
                         <p>Size: ${item.size_variant} × ${item.quantity}</p>
                     </div>
-                    <div class="item-price">$${itemTotal.toFixed(2)}</div>
+                    <div class="item-price">R${itemTotal.toFixed(2)}</div>
                 </div>
             `;
         });
@@ -90,40 +88,16 @@ class CheckoutManager {
     }
 
     updateOrderTotals(subtotal) {
-        const shipping = 5.99;
-        const tax = subtotal * 0.08;
+        const shipping = 49.99; // ZAR shipping
+        const tax = subtotal * 0.15; // 15% VAT
         const total = subtotal + shipping + tax;
 
-        document.getElementById('order-subtotal').textContent = `$${subtotal.toFixed(2)}`;
-        document.getElementById('order-tax').textContent = `$${tax.toFixed(2)}`;
-        document.getElementById('order-total').textContent = `$${total.toFixed(2)}`;
+        document.getElementById('order-subtotal').textContent = `R${subtotal.toFixed(2)}`;
+        document.getElementById('order-shipping').textContent = `R${shipping.toFixed(2)}`;
+        document.getElementById('order-tax').textContent = `R${tax.toFixed(2)}`;
+        document.getElementById('order-total').textContent = `R${total.toFixed(2)}`;
         
         return total;
-    }
-
-    setupStripe() {
-        // For now, we'll use test mode. Replace with your actual Stripe publishable key
-        this.stripe = Stripe('pk_test_51Q...'); // You'll get this from Stripe dashboard
-        this.elements = this.stripe.elements();
-        
-        // Create payment element
-        const appearance = {
-            theme: 'stripe',
-        };
-        
-        const options = {
-            layout: {
-                type: 'tabs',
-                defaultCollapsed: false,
-            }
-        };
-
-        const paymentElement = this.elements.create('payment', {
-            appearance,
-            options
-        });
-        
-        paymentElement.mount('#payment-element');
     }
 
     setupEventListeners() {
@@ -145,7 +119,7 @@ class CheckoutManager {
         const messageDiv = document.getElementById('payment-message');
         
         submitButton.disabled = true;
-        messageDiv.textContent = 'Processing payment...';
+        messageDiv.textContent = 'Processing your order...';
 
         // Validate shipping form
         const shippingForm = document.getElementById('shipping-form');
@@ -160,28 +134,15 @@ class CheckoutManager {
         const total = this.calculateTotal();
 
         try {
-            // In a real app, you'd call your backend to create a payment intent
-            // For now, we'll simulate the process
-            const { error } = await this.stripe.confirmPayment({
-                elements: this.elements,
-                confirmParams: {
-                    return_url: `${window.location.origin}/order-success.html`,
-                },
-                redirect: 'if_required'
-            });
-
-            if (error) {
-                messageDiv.textContent = error.message;
-                submitButton.disabled = false;
-                return;
-            }
-
-            // If we get here, payment was successful
-            await this.createOrder(shippingData, total);
+            // First create the order in our database
+            const order = await this.createOrderRecord(shippingData, total);
+            
+            // Redirect to PayFast
+            await this.redirectToPayFast(order, total, shippingData);
             
         } catch (error) {
             console.error('Payment error:', error);
-            messageDiv.textContent = 'An unexpected error occurred.';
+            messageDiv.textContent = 'An unexpected error occurred: ' + error.message;
             submitButton.disabled = false;
         }
     }
@@ -192,15 +153,19 @@ class CheckoutManager {
             return sum + (price * item.quantity);
         }, 0);
         
-        return subtotal + 5.99 + (subtotal * 0.08); // subtotal + shipping + tax
+        // South African pricing
+        const shipping = 49.99; // ZAR - typical SA shipping
+        const tax = subtotal * 0.15; // 15% VAT in South Africa
+        const total = subtotal + shipping + tax;
+        
+        return parseFloat(total.toFixed(2));
     }
 
-    async createOrder(shippingData, total) {
+    async createOrderRecord(shippingData, total) {
         const user = window.authManager.getCurrentUser();
         
         try {
-            // Create order
-            const { data: order, error: orderError } = await window.supabase
+            const { data: order, error } = await window.supabase
                 .from('orders')
                 .insert([
                     {
@@ -214,16 +179,18 @@ class CheckoutManager {
                             city: shippingData.get('city'),
                             state: shippingData.get('state'),
                             zipCode: shippingData.get('zipCode'),
-                            phone: shippingData.get('phone')
+                            phone: shippingData.get('phone'),
+                            country: 'South Africa'
                         },
-                        status: 'confirmed',
-                        payment_status: 'paid'
+                        status: 'pending_payment',
+                        payment_status: 'pending',
+                        payment_method: 'payfast'
                     }
                 ])
                 .select()
                 .single();
 
-            if (orderError) throw orderError;
+            if (error) throw error;
 
             // Create order items
             const orderItems = this.cartItems.map(item => {
@@ -243,35 +210,67 @@ class CheckoutManager {
 
             if (itemsError) throw itemsError;
 
-            // Update product stock
-            for (const item of this.cartItems) {
-                const { error: stockError } = await window.supabase
-                    .from('products')
-                    .update({ 
-                        stock_quantity: item.products.stock_quantity - item.quantity 
-                    })
-                    .eq('id', item.product_id);
-
-                if (stockError) throw stockError;
-            }
-
-            // Clear cart
-            const { error: cartError } = await window.supabase
-                .from('cart_items')
-                .delete()
-                .eq('user_id', user.id);
-
-            if (cartError) throw cartError;
-
-            // Redirect to success page
-            window.location.href = `order-success.html?order_id=${order.id}`;
+            return order;
 
         } catch (error) {
-            console.error('Order creation error:', error);
-            document.getElementById('payment-message').textContent = 
-                'Error creating order. Please try again.';
-            document.getElementById('submit-payment').disabled = false;
+            console.error('Error creating order record:', error);
+            throw new Error('Could not create order');
         }
+    }
+
+    async redirectToPayFast(order, amount, shippingData) {
+        const user = window.authManager.getCurrentUser();
+        
+        // Create return URLs
+        const returnUrl = `${window.location.origin}/order-success.html?order_id=${order.id}`;
+        const cancelUrl = `${window.location.origin}/checkout.html?cancelled=true&order_id=${order.id}`;
+        
+        // PayFast payment data
+        const paymentData = {
+            // 🔑 PAYFAST TEST CREDENTIALS
+            merchant_id: '10043505',        // PayFast test merchant ID
+            merchant_key: 'mezhxf8ti9t1l',  // PayFast test merchant key
+            
+            return_url: returnUrl,
+            cancel_url: cancelUrl,
+            notify_url: `${window.location.origin}/.netlify/functions/payfast-notify`,
+            
+            // Buyer details
+            name_first: shippingData.get('firstName') || 'Test',
+            name_last: shippingData.get('lastName') || 'Customer',
+            email_address: shippingData.get('email') || user?.email || 'test@example.com',
+            cell_number: shippingData.get('phone') || '+27123456789',
+            
+            // Order details
+            m_payment_id: order.id.toString(),
+            amount: amount.toFixed(2),
+            item_name: `LuxeScents Order #${order.id}`,
+            item_description: `${this.cartItems.length} perfume item(s)`,
+            
+            // Custom data for tracking
+            custom_int1: order.id,
+            custom_str1: user.id
+        };
+
+        // Generate and redirect to PayFast
+        const payfastUrl = this.generatePayFastUrl(paymentData);
+        console.log('Redirecting to PayFast:', payfastUrl);
+        window.location.href = payfastUrl;
+    }
+
+    generatePayFastUrl(paymentData) {
+        // PayFast Sandbox URL for testing
+        const baseUrl = '	https://sandbox.payfast.co.za/eng/process';
+        const params = new URLSearchParams();
+        
+        // Add all payment data as parameters
+        Object.keys(paymentData).forEach(key => {
+            if (paymentData[key]) {
+                params.append(key, paymentData[key].toString());
+            }
+        });
+        
+        return baseUrl + params.toString();
     }
 }
 

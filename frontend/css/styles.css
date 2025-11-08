@@ -632,3 +632,207 @@ body {
     font-size: 0.9rem;
     margin-top: 0.25rem;
 }
+/* Profile Styles */
+.profile-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.profile-sidebar {
+    background: var(--white);
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+    height: fit-content;
+}
+
+.profile-avatar {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #eee;
+}
+
+.avatar-placeholder {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0 auto 1rem;
+}
+
+.profile-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.profile-nav-btn {
+    padding: 1rem;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+.profile-nav-btn:hover {
+    background: #f8f9fa;
+}
+
+.profile-nav-btn.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.profile-content {
+    background: var(--white);
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.profile-tab {
+    display: none;
+}
+
+.profile-tab.active {
+    display: block;
+}
+
+.tab-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+/* Address Cards */
+.address-card {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.address-card.default-address {
+    border-color: var(--primary-color);
+    background: #f8f9fa;
+}
+
+.address-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.default-badge {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin-left: 0.5rem;
+}
+
+.address-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.address-details p {
+    margin: 0.25rem 0;
+    color: var(--text-light);
+}
+
+.address-footer {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-light);
+}
+
+.empty-state-sub {
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+/* Checkbox Styles */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 1rem;
+}
+
+.checkbox-label input {
+    margin-right: 0.5rem;
+}
+
+.preference-item {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+
+/* Form Improvements */
+.form-group small {
+    color: var(--text-light);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    display: block;
+}
+/* PayFast Payment Styles */
+.payment-methods {
+    background: var(--white);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    margin-bottom: 1rem;
+}
+
+.payment-method-info {
+    text-align: center;
+}
+
+.payment-method-info p {
+    margin-bottom: 1rem;
+}
+
+.supported-methods {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #eee;
+}
+
+.payment-icons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+.payment-icons span {
+    padding: 0.5rem 1rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}

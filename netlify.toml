@@ -1,0 +1,25 @@
+[build]
+  publish = "frontend"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Environment variables for production
+[build.environment]
+  SUPABASE_URL = "https://zcjizkxzolldbuhjneev.supabase.co"
+  SUPABASE_SERVICE_KEY = "your-supabase-service-key"
+  SITE_URL = "https://your-site.netlify.app"
+
+# For production PayFast (when ready)
+[context.production.environment]
+  PAYFAST_MERCHANT_ID = "your-live-merchant-id"
+  PAYFAST_MERCHANT_KEY = "your-live-merchant-key"
+  PAYFAST_PASSPHRASE = "your-live-passphrase"
+
+# For development
+[context.deploy-preview.environment]
+  PAYFAST_MERCHANT_ID = "10043505"
+  PAYFAST_MERCHANT_KEY = "mezhxf8ti9t1l"
