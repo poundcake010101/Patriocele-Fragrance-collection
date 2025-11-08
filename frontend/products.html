@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Perfumes - Patriocele Fragrance Collection</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Patriocele Fragrance Collection</div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="products.html">Perfumes</a>
+            <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
+            <div id="auth-buttons">
+                <a href="login.html" class="btn-outline">Login</a>
+                <a href="signup.html" class="btn-primary">Sign Up</a>
+            </div>
+            <div id="user-menu" style="display: none;">
+                <span id="user-email"></span>
+                <a href="orders.html">Orders</a>
+                <button id="logout-btn" class="btn-outline">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>Our Fragrance Collection</h1>
+        
+        <div class="filters">
+            <select id="category-filter">
+                <option value="">All Categories</option>
+            </select>
+            <select id="brand-filter">
+                <option value="">All Brands</option>
+            </select>
+            <input type="text" id="search-input" placeholder="Search perfumes...">
+        </div>
+
+        <div class="products-grid" id="products-grid">
+            <!-- Products will be loaded here -->
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/products.js"></script>
+</body>
+</html>

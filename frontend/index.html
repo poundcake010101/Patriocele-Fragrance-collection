@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patriocele Fragrance Collection - Premium Fragrances</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Patriocele Fragrance Collection</div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="products.html">Perfumes</a>
+            <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
+            <div id="auth-buttons">
+                <a href="login.html" class="btn-outline">Login</a>
+                <a href="signup.html" class="btn-primary">Sign Up</a>
+            </div>
+            <div id="user-menu" style="display: none;">
+                <span id="user-email"></span>
+                <a href="orders.html">Orders</a>
+                <button id="logout-btn" class="btn-outline">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero" style="background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1547887537-6158d64c35b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80'); background-size: cover; background-position: center; color: white; text-align: center; padding: 6rem 2rem;">
+            <h1 style="font-size: 3rem; margin-bottom: 1rem;">Discover Your Signature Scent</h1>
+            <p style="font-size: 1.2rem; margin-bottom: 2rem;">Luxury fragrances for every occasion</p>
+            <a href="products.html" class="btn-primary" style="background: var(--secondary-color); border: none;">Shop Now</a>
+        </section>
+
+        <!-- Featured Products -->
+        <section class="container" id="featured-products" style="padding: 4rem 2rem;">
+            <!-- Products will be loaded here by JavaScript -->
+        </section>
+
+        <!-- Features -->
+        <section style="background: var(--white); padding: 4rem 2rem;">
+            <div class="container">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; text-align: center;">
+                    <div class="feature">
+                        <h3>🚚 Free Shipping</h3>
+                        <p>On orders over $100</p>
+                    </div>
+                    <div class="feature">
+                        <h3>💎 Premium Quality</h3>
+                        <p>Luxury fragrances guaranteed</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🔒 Secure Payment</h3>
+                        <p>Your data is protected</p>
+                    </div>
+                    <div class="feature">
+                        <h3>💬 Expert Advice</h3>
+                        <p>Fragrance consultants available</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/products.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const productManager = new ProductManager();
+            productManager.loadFeaturedProducts();
+        });
+    </script>
+</body>
+</html>

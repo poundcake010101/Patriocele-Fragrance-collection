@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Patriocele Fragrance Collection</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Patriocele Fragrance Collection</div>
+        <div class="nav-links">
+            <a href="index.html">Back to Home</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div style="max-width: 400px; margin: 0 auto;">
+            <h2>Create Account</h2>
+            <form id="signup-form">
+                <div class="form-group">
+                    <label for="fullName">Full Name</label>
+                    <input type="text" id="fullName" name="fullName" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" minlength="6" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%;">Create Account</button>
+            </form>
+            <div id="message" style="margin-top: 1rem;"></div>
+            <p style="text-align: center; margin-top: 1rem;">
+                Already have an account? <a href="login.html">Login here</a>
+            </p>
+        </div>
+    </div>
+
+    
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('signup-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const email = formData.get('email');
+                const password = formData.get('password');
+                const confirmPassword = formData.get('confirmPassword');
+                const fullName = formData.get('fullName');
+
+                if (password !== confirmPassword) {
+                    showMessage('Passwords do not match!', 'error');
+                    return;
+                }
+
+                // Wait for authManager to be available
+                if (!window.authManager) {
+                    showMessage('System still loading, please try again...', 'error');
+                    return;
+                }
+
+                const result = await window.authManager.signUp(email, password, fullName);
+                
+                if (result.success) {
+                    showMessage('Account created successfully! Please check your email for verification.', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 3000);
+                } else {
+                    showMessage('Error: ' + result.error, 'error');
+                }
+            });
+
+            function showMessage(message, type) {
+                const messageDiv = document.getElementById('message');
+                messageDiv.textContent = message;
+                messageDiv.style.color = type === 'success' ? 'green' : 'red';
+            }
+        });
+    </script>
+</body>
+</html>
