@@ -119,8 +119,12 @@ class ProductManager {
         const featuredSection = document.getElementById('featured-products');
         if (!featuredSection) return;
 
+        if (products.length === 0) {
+            featuredSection.innerHTML = '<p style="text-align: center;">No featured products available</p>';
+            return;
+        }
+
         let html = '';
-        
         products.forEach(product => {
             const mainImage = product.images?.[0] || 'https://via.placeholder.com/300x300?text=Perfume';
             const sizes = product.size_variants ? Object.keys(product.size_variants) : [];
