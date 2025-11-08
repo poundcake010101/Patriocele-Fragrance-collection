@@ -5,17 +5,42 @@ class CartManager {
     }
 
     async init() {
-        await this.loadCartItems();
+        // Wait for auth to be initialized
+        if (!window.authManager) {
+            console.log('Waiting for auth manager...');
+            setTimeout(() => this.init(), 100);
+            return;
+        }
+
+        // Wait for authentication state to be confirmed
+        const authReady = await window.authManager.waitForAuth();
+        if (!authReady) {
+            console.error('Auth initialization timeout');
+            this.showLoginPrompt();
+            return;
+        }
+
+        console.log('Cart manager initializing. User:', window.authManager.getCurrentUser()?.email);
+        
+        if (window.authManager.isUserLoggedIn()) {
+            await this.loadCartItems();
+        } else {
+            this.showLoginPrompt();
+        }
+        
         this.setupEventListeners();
     }
 
     async loadCartItems() {
-        const user = window.authManager?.getCurrentUser();
+        const user = window.authManager.getCurrentUser();
         
         if (!user) {
+            console.log('No user found, showing login prompt');
             this.showLoginPrompt();
             return;
         }
+
+        console.log('Loading cart for user:', user.id);
 
         try {
             const { data, error } = await window.supabase
@@ -31,10 +56,17 @@ class CartManager {
                 `)
                 .eq('user_id', user.id);
 
-            if (error) throw error;
+            if (error) {
+                console.error('Error loading cart:', error);
+                return;
+            }
 
+            console.log('Cart items loaded:', data);
             this.cartItems = data || [];
             this.renderCart();
+            
+            // Update cart count in navbar
+            window.authManager.updateCartCount();
         } catch (error) {
             console.error('Error loading cart:', error);
         }
@@ -44,6 +76,8 @@ class CartManager {
         const cartItemsDiv = document.getElementById('cart-items');
         const cartEmptyDiv = document.getElementById('cart-empty');
         const cartSummaryDiv = document.getElementById('cart-summary');
+
+        console.log('Rendering cart with', this.cartItems.length, 'items');
 
         if (this.cartItems.length === 0) {
             cartEmptyDiv.style.display = 'block';
@@ -60,6 +94,11 @@ class CartManager {
 
         this.cartItems.forEach(item => {
             const product = item.products;
+            if (!product) {
+                console.warn('Product not found for cart item:', item);
+                return;
+            }
+
             const price = product.size_variants?.[item.size_variant] || product.price;
             const itemTotal = price * item.quantity;
             subtotal += itemTotal;
@@ -93,7 +132,7 @@ class CartManager {
 
     updateTotals(subtotal) {
         const shipping = 5.99;
-        const tax = subtotal * 0.08; // 8% tax
+        const tax = subtotal * 0.08;
         const total = subtotal + shipping + tax;
 
         document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
@@ -165,7 +204,13 @@ class CartManager {
     }
 
     showLoginPrompt() {
+        console.log('Showing login prompt');
         const cartItemsDiv = document.getElementById('cart-items');
+        const cartEmptyDiv = document.getElementById('cart-empty');
+        const cartSummaryDiv = document.getElementById('cart-summary');
+        
+        cartEmptyDiv.style.display = 'none';
+        cartSummaryDiv.style.display = 'none';
         cartItemsDiv.innerHTML = `
             <div style="text-align: center; padding: 2rem;">
                 <p>Please log in to view your cart</p>
@@ -185,5 +230,5 @@ class CartManager {
 
 // Initialize cart manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    new CartManager();
+    window.cartManager = new CartManager();
 });

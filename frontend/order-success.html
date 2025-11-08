@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmed - Patriocele Fragrance Collection</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Patriocele Fragrance Collection</div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="products.html">Perfumes</a>
+            <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
+            <div id="auth-buttons">
+                <a href="login.html" class="btn-outline">Login</a>
+                <a href="signup.html" class="btn-primary">Sign Up</a>
+            </div>
+            <div id="user-menu" style="display: none;">
+                <span id="user-email"></span>
+                <a href="orders.html">Orders</a>
+                <button id="logout-btn" class="btn-outline">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div style="max-width: 600px; margin: 0 auto; text-align: center; padding: 4rem 0;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
+            <h1>Order Confirmed!</h1>
+            <p style="font-size: 1.2rem; margin-bottom: 2rem; color: var(--text-light);">
+                Thank you for your purchase. Your order has been confirmed and will be shipped soon.
+            </p>
+            
+            <div id="order-details" style="background: var(--white); padding: 2rem; border-radius: 8px; margin-bottom: 2rem;">
+                <p><strong>Order ID:</strong> <span id="order-id">Loading...</span></p>
+                <p><strong>Total Amount:</strong> <span id="order-total">Loading...</span></p>
+                <p><strong>Estimated Delivery:</strong> 3-5 business days</p>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <a href="orders.html" class="btn-primary">View My Orders</a>
+                <a href="products.html" class="btn-outline">Continue Shopping</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Get order ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderId = urlParams.get('order_id');
+            
+            if (orderId) {
+                document.getElementById('order-id').textContent = orderId;
+                
+                // Fetch order details
+                const { data: order, error } = await window.supabase
+                    .from('orders')
+                    .select('total_amount')
+                    .eq('id', orderId)
+                    .single();
+                    
+                if (order) {
+                    document.getElementById('order-total').textContent = `$${order.total_amount}`;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
