@@ -4,7 +4,121 @@ class AdminManager {
         this.products = [];
         this.orders = [];
         this.users = [];
+        this.currency = 'ZAR';
         this.init();
+    }
+
+    loadAnalytics() {
+        this.loadSalesChart();
+        this.loadTopProducts();
+    }
+
+    async loadAnalytics() {
+        await this.loadSalesChart();
+        await this.loadTopProducts();
+        await this.loadAnalyticsSummary();
+    }
+
+    async loadAnalyticsSummary() {
+        const { data: orders, error } = await window.supabase
+            .from('orders')
+            .select('total_amount, payment_status, created_at')
+            .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
+        if (error) {
+            console.error('Error loading analytics summary:', error);
+            return;
+        }
+
+        const paidOrders = orders.filter(order => order.payment_status === 'paid');
+        const totalRevenue = paidOrders.reduce((sum, order) => sum + parseFloat(order.total_amount), 0);
+        const averageOrderValue = paidOrders.length > 0 ? totalRevenue / paidOrders.length : 0;
+
+        // Update the analytics tab with summary
+        const summaryHtml = `
+            <div class="analytics-summary">
+                <div class="summary-item">
+                    <h4>30-Day Revenue</h4>
+                    <div class="summary-value">R${totalRevenue.toFixed(2)}</div>
+                </div>
+                <div class="summary-item">
+                    <h4>Total Orders</h4>
+                    <div class="summary-value">${paidOrders.length}</div>
+                </div>
+                <div class="summary-item">
+                    <h4>Average Order</h4>
+                    <div class="summary-value">R${averageOrderValue.toFixed(2)}</div>
+                </div>
+            </div>
+        `;
+
+        // Add this to the analytics tab
+        const existingContent = document.getElementById('sales-chart').innerHTML;
+        document.getElementById('sales-chart').innerHTML = summaryHtml + existingContent;
+    }
+
+    async loadSalesChart() {
+        const { data, error } = await window.supabase
+            .from('orders')
+            .select('created_at, total_amount')
+            .eq('payment_status', 'paid')
+            .order('created_at', { ascending: true })
+            .limit(30);
+
+        if (error) {
+            console.error('Error loading sales data:', error);
+            return;
+        }
+
+        const container = document.getElementById('sales-chart');
+        
+        if (data.length === 0) {
+            container.innerHTML = '<p style="text-align: center; padding: 2rem;">No sales data available yet</p>';
+            return;
+        }
+
+        // Group by date and sum amounts
+        const salesByDate = {};
+        data.forEach(order => {
+            const date = new Date(order.created_at).toLocaleDateString();
+            salesByDate[date] = (salesByDate[date] || 0) + parseFloat(order.total_amount);
+        });
+
+        const dates = Object.keys(salesByDate);
+        const amounts = Object.values(salesByDate);
+
+        // Create a simple bar chart using CSS
+        const maxAmount = Math.max(...amounts);
+        
+        let html = `
+            <div class="chart-container">
+                <div class="chart-title">Sales Last 30 Days</div>
+                <div class="chart-bars">
+        `;
+
+        dates.forEach((date, index) => {
+            const height = (amounts[index] / maxAmount) * 100;
+            html += `
+                <div class="chart-bar-container">
+                    <div class="chart-bar" style="height: ${height}%"></div>
+                    <div class="chart-label">
+                        <small>R${amounts[index].toFixed(0)}</small>
+                        <br>
+                        <small>${date.split('/')[0]}/${date.split('/')[1]}</small>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `
+                </div>
+                <div class="chart-total">
+                    Total: R${amounts.reduce((a, b) => a + b, 0).toFixed(2)}
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = html;
     }
 
     async init() {
@@ -114,7 +228,7 @@ class AdminManager {
             document.getElementById('total-products').textContent = productsCount;
             document.getElementById('total-orders').textContent = ordersCount;
             document.getElementById('total-users').textContent = usersCount;
-            document.getElementById('total-revenue').textContent = `$${revenueData.total.toFixed(2)}`;
+            document.getElementById('total-revenue').textContent = `R${revenueData.total.toFixed(2)}`;
 
             // Load recent orders
             await this.loadRecentOrders();
@@ -199,7 +313,7 @@ class AdminManager {
                     </div>
                     <div class="order-meta">
                         <span class="status-badge status-${order.status}">${order.status}</span>
-                        <span>$${order.total_amount}</span>
+                        <span>R${order.total_amount}</span>
                     </div>
                 </div>
             `;
@@ -279,7 +393,7 @@ class AdminManager {
                             </div>
                         </div>
                     </td>
-                    <td>$${product.price}</td>
+                    <td>R${product.price}</td>
                     <td>
                         <span class="${product.stock_quantity < 10 ? 'stock-warning' : ''}">
                             ${product.stock_quantity}
@@ -355,7 +469,7 @@ class AdminManager {
                         </div>
                     </td>
                     <td>${orderDate}</td>
-                    <td>$${order.total_amount}</td>
+                    <td>R${order.total_amount}</td>
                     <td>
                         <select class="status-select" data-order-id="${order.id}" onchange="adminManager.updateOrderStatus(${order.id}, this.value)">
                             <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
@@ -421,7 +535,7 @@ class AdminManager {
                         </span>
                     </td>
                     <td>
-                        <button class="btn-outline btn-sm" onclick="adminManager.toggleAdmin(${user.id}, ${!user.is_admin})">
+                        <button class="btn-outline btn-sm" onclick="adminManager.toggleAdmin('${user.id}', ${!user.is_admin})">
                             ${user.is_admin ? 'Remove Admin' : 'Make Admin'}
                         </button>
                     </td>
@@ -584,7 +698,6 @@ class AdminManager {
     }
 
     renderFilteredProducts(filteredProducts) {
-        // Similar to renderProducts but with filtered array
         const tbody = document.getElementById('products-table-body');
         
         if (filteredProducts.length === 0) {
@@ -607,7 +720,7 @@ class AdminManager {
                             </div>
                         </div>
                     </td>
-                    <td>$${product.price}</td>
+                    <td>R${product.price}</td>
                     <td>${product.stock_quantity}</td>
                     <td>
                         <span class="status-badge ${product.is_active ? 'status-confirmed' : 'status-cancelled'}">
@@ -637,7 +750,6 @@ class AdminManager {
     }
 
     renderFilteredOrders(filteredOrders) {
-        // Similar to renderOrders but with filtered array
         const tbody = document.getElementById('orders-table-body');
         
         if (filteredOrders.length === 0) {
@@ -660,7 +772,7 @@ class AdminManager {
                         </div>
                     </td>
                     <td>${orderDate}</td>
-                    <td>$${order.total_amount}</td>
+                    <td>R${order.total_amount}</td>
                     <td>
                         <select class="status-select" data-order-id="${order.id}" onchange="adminManager.updateOrderStatus(${order.id}, this.value)">
                             <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>

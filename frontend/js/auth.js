@@ -6,64 +6,68 @@ class AuthManager {
     }
 
     async init() {
-    // Wait for Supabase to be available with a timeout
-    let attempts = 0;
-    const maxAttempts = 10;
-    
-    while (!window.supabase && attempts < maxAttempts) {
-        console.log('⏳ Waiting for Supabase to load... attempt', attempts + 1);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        attempts++;
-    }
-
-    if (!window.supabase) {
-        console.error('❌ Supabase not loaded after maximum attempts');
-        return;
-    }
-
-    try {
-        console.log('🔐 Checking authentication status...');
-        const { data: { session }, error } = await window.supabase.auth.getSession();
+        // Wait for Supabase to be available with a timeout
+        let attempts = 0;
+        const maxAttempts = 10;
         
-        if (error) {
-            console.error('Session error:', error);
+        while (!window.supabase && attempts < maxAttempts) {
+            console.log('⏳ Waiting for Supabase to load... attempt', attempts + 1);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            attempts++;
+        }
+
+        if (!window.supabase) {
+            console.error('❌ Supabase not loaded after maximum attempts');
             return;
         }
 
-        this.currentUser = session?.user || null;
-        this.isInitialized = true;
-        
-        console.log('✅ Auth initialized. User:', this.currentUser?.email || 'Not logged in');
-        this.updateUI();
-        
-        // Listen for auth changes
-        window.supabase.auth.onAuthStateChange((event, session) => {
-            console.log('🔄 Auth state changed:', event, session?.user?.email || 'No user');
+        try {
+            console.log('🔐 Checking authentication status...');
+            const { data: { session }, error } = await window.supabase.auth.getSession();
+            
+            if (error) {
+                console.error('Session error:', error);
+                return;
+            }
+
             this.currentUser = session?.user || null;
+            this.isInitialized = true;
+            
+            console.log('✅ Auth initialized. User:', this.currentUser?.email || 'Not logged in');
             this.updateUI();
             
-            // Trigger cart reload if on cart page
-            if (window.cartManager && event === 'SIGNED_IN') {
-                window.cartManager.loadCartItems();
-            }
-        });
-        
-    } catch (error) {
-        console.error('❌ Auth initialization error:', error);
+            // Listen for auth changes
+            window.supabase.auth.onAuthStateChange((event, session) => {
+                console.log('🔄 Auth state changed:', event, session?.user?.email || 'No user');
+                this.currentUser = session?.user || null;
+                this.updateUI();
+                
+                // Trigger cart reload if on cart page
+                if (window.cartManager && event === 'SIGNED_IN') {
+                    window.cartManager.loadCartItems();
+                }
+            });
+            
+        } catch (error) {
+            console.error('❌ Auth initialization error:', error);
+        }
     }
-}
 
     updateUI() {
         const authButtons = document.getElementById('auth-buttons');
         const userMenu = document.getElementById('user-menu');
         const userEmail = document.getElementById('user-email');
         const cartCount = document.getElementById('cart-count');
+        const adminLink = document.getElementById('admin-link');
 
         if (this.currentUser) {
             console.log('Updating UI: User is logged in');
             if (authButtons) authButtons.style.display = 'none';
             if (userMenu) userMenu.style.display = 'flex';
             if (userEmail) userEmail.textContent = this.currentUser.email;
+            
+            // Check if user is admin and show admin link
+            this.checkAndShowAdminLink();
             
             // Update cart count
             this.updateCartCount();
@@ -72,6 +76,30 @@ class AuthManager {
             if (authButtons) authButtons.style.display = 'flex';
             if (userMenu) userMenu.style.display = 'none';
             if (cartCount) cartCount.textContent = '0';
+            if (adminLink) adminLink.style.display = 'none';
+        }
+    }
+
+    async checkAndShowAdminLink() {
+        const adminLink = document.getElementById('admin-link');
+        if (!adminLink || !this.currentUser) return;
+
+        try {
+            const { data: userData, error } = await window.supabase
+                .from('users')
+                .select('is_admin')
+                .eq('id', this.currentUser.id)
+                .single();
+
+            if (!error && userData?.is_admin) {
+                adminLink.style.display = 'block';
+                console.log('✅ Admin user detected, showing admin link');
+            } else {
+                adminLink.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error checking admin status:', error);
+            adminLink.style.display = 'none';
         }
     }
 

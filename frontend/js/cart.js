@@ -1,6 +1,9 @@
 class CartManager {
     constructor() {
         this.cartItems = [];
+        this.currency = 'ZAR';
+        this.shippingCost = 49.99; // ZAR shipping cost
+        this.taxRate = 0.15; // 15% VAT
         this.init();
     }
 
@@ -111,7 +114,7 @@ class CartManager {
                     <div style="flex: 1;">
                         <h3>${product.name}</h3>
                         <p>Size: ${item.size_variant}</p>
-                        <p class="price">$${price}</p>
+                        <p class="price">R${price.toFixed(2)}</p>
                     </div>
                     <div class="quantity-controls">
                         <button class="btn-outline quantity-btn" data-action="decrease">-</button>
@@ -119,7 +122,7 @@ class CartManager {
                         <button class="btn-outline quantity-btn" data-action="increase">+</button>
                     </div>
                     <div class="item-total">
-                        $${itemTotal.toFixed(2)}
+                        R${itemTotal.toFixed(2)}
                     </div>
                     <button class="btn-outline remove-btn" data-item-id="${item.id}">Remove</button>
                 </div>
@@ -131,13 +134,14 @@ class CartManager {
     }
 
     updateTotals(subtotal) {
-        const shipping = 5.99;
-        const tax = subtotal * 0.08;
+        const shipping = this.shippingCost;
+        const tax = subtotal * this.taxRate;
         const total = subtotal + shipping + tax;
 
-        document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
-        document.getElementById('tax').textContent = `$${tax.toFixed(2)}`;
-        document.getElementById('total').textContent = `$${total.toFixed(2)}`;
+        document.getElementById('subtotal').textContent = `R${subtotal.toFixed(2)}`;
+        document.getElementById('shipping').textContent = `R${shipping.toFixed(2)}`;
+        document.getElementById('tax').textContent = `R${tax.toFixed(2)}`;
+        document.getElementById('total').textContent = `R${total.toFixed(2)}`;
     }
 
     async updateQuantity(itemId, change) {

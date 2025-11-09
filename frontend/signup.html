@@ -8,10 +8,24 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <nav class="navbar">
+     <nav class="navbar">
         <div class="nav-brand">Patriocele Fragrance Collection</div>
-        <div class="nav-links">
-            <a href="index.html">Back to Home</a>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="products.html">Perfumes</a>
+                <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
+                <div id="auth-buttons">
+                    <a href="login.html" class="btn-outline">Login</a>
+                    <a href="signup.html" class="btn-primary">Sign Up</a>
+                </div>
+                <div id="user-menu" style="display: none;">
+                    <span id="user-email"></span>
+                    <a href="orders.html">Orders</a>
+                    <a href="profile.html">Profile</a>
+                    <!-- Admin link will be shown only for admin users -->
+                    <a href="admin.html" id="admin-link" style="display: none;">Admin Panel</a>
+                    <button id="logout-btn" class="btn-outline">Logout</button>
+                </div>
         </div>
     </nav>
 

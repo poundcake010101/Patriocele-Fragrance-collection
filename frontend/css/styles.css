@@ -885,3 +885,126 @@ body {
     margin-top: auto;
     width: 100%;
 }
+/* Analytics Charts */
+.chart-container {
+    background: var(--white);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.chart-title {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: var(--text-dark);
+}
+
+.chart-bars {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 200px;
+    padding: 1rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.chart-bar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    margin: 0 2px;
+}
+
+.chart-bar {
+    background: linear-gradient(to top, var(--primary-color), var(--secondary-color));
+    width: 20px;
+    border-radius: 4px 4px 0 0;
+    transition: height 0.3s ease;
+    min-height: 5px;
+}
+
+.chart-label {
+    margin-top: 0.5rem;
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--text-light);
+}
+
+.chart-total {
+    text-align: center;
+    font-weight: bold;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+    color: var(--primary-color);
+}
+
+/* Better analytics grid */
+.analytics-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+}
+
+.analytics-card {
+    background: var(--white);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+.analytics-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.summary-item {
+    background: var(--white);
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid #eee;
+}
+
+.summary-item h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+.summary-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+/* Improved user menu */
+#user-menu {
+    display: none;
+    align-items: center;
+    gap: 1rem;
+}
+
+#user-menu a {
+    text-decoration: none;
+    color: var(--text-dark);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+#user-menu a:hover {
+    background: #f8f9fa;
+}
+
+#admin-link {
+    background: var(--secondary-color);
+    color: white !important;
+}
+
+#admin-link:hover {
+    background: var(--primary-color) !important;
+}

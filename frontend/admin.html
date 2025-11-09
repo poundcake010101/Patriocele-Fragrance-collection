@@ -9,13 +9,23 @@
 </head>
 <body>
     <nav class="navbar">
-        <div class="nav-brand">Patriocele Fragrance Collection Admin</div>
-        <div class="nav-links">
-            <a href="index.html">Store Front</a>
-            <div id="user-menu" style="display: none;">
-                <span id="user-email"></span>
-                <button id="logout-btn" class="btn-outline">Logout</button>
-            </div>
+        <div class="nav-brand">Patriocele Fragrance Collection</div>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="products.html">Perfumes</a>
+                <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
+                <div id="auth-buttons">
+                    <a href="login.html" class="btn-outline">Login</a>
+                    <a href="signup.html" class="btn-primary">Sign Up</a>
+                </div>
+                <div id="user-menu" style="display: none;">
+                    <span id="user-email"></span>
+                    <a href="orders.html">Orders</a>
+                    <a href="profile.html">Profile</a>
+                    <!-- Admin link will be shown only for admin users -->
+                    <a href="admin.html" id="admin-link" style="display: none;">Admin Panel</a>
+                    <button id="logout-btn" class="btn-outline">Logout</button>
+                </div>
         </div>
     </nav>
 
@@ -35,7 +45,7 @@
             <div class="stats-grid">
                 <div class="stat-card">
                     <h3>Total Revenue</h3>
-                    <div class="stat-number" id="total-revenue">$0.00</div>
+                    <div class="stat-number" id="total-revenue">R0.00</div>
                     <div class="stat-change" id="revenue-change">+0% from last month</div>
                 </div>
                 <div class="stat-card">
@@ -206,7 +216,7 @@
                             <input type="text" id="product-name" required>
                         </div>
                         <div class="form-group">
-                            <label for="product-price">Base Price</label>
+                            <label for="product-price">Base Price (ZAR)</label>
                             <input type="number" id="product-price" step="0.01" required>
                         </div>
                     </div>

@@ -10,19 +10,22 @@
 <body>
     <nav class="navbar">
         <div class="nav-brand">Patriocele Fragrance Collection</div>
-        <div class="nav-links">
-            <a href="index.html">Home</a>
-            <a href="products.html">Perfumes</a>
-            <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
-            <div id="auth-buttons">
-                <a href="login.html" class="btn-outline">Login</a>
-                <a href="signup.html" class="btn-primary">Sign Up</a>
-            </div>
-            <div id="user-menu" style="display: none;">
-                <span id="user-email"></span>
-                <a href="orders.html">Orders</a>
-                <button id="logout-btn" class="btn-outline">Logout</button>
-            </div>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="products.html">Perfumes</a>
+                <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
+                <div id="auth-buttons">
+                    <a href="login.html" class="btn-outline">Login</a>
+                    <a href="signup.html" class="btn-primary">Sign Up</a>
+                </div>
+                <div id="user-menu" style="display: none;">
+                    <span id="user-email"></span>
+                    <a href="orders.html">Orders</a>
+                    <a href="profile.html">Profile</a>
+                    <!-- Admin link will be shown only for admin users -->
+                    <a href="admin.html" id="admin-link" style="display: none;">Admin Panel</a>
+                    <button id="logout-btn" class="btn-outline">Logout</button>
+                </div>
         </div>
     </nav>
 
@@ -40,19 +43,19 @@
                 <h3>Order Summary</h3>
                 <div class="total-line">
                     <span>Subtotal:</span>
-                    <span id="subtotal">$0.00</span>
+                    <span id="subtotal">R0.00</span>
                 </div>
                 <div class="total-line">
                     <span>Shipping:</span>
-                    <span id="shipping">$5.99</span>
+                    <span id="shipping">R49.99</span>
                 </div>
                 <div class="total-line">
-                    <span>Tax:</span>
-                    <span id="tax">$0.00</span>
+                    <span>Tax (15% VAT):</span>
+                    <span id="tax">R0.00</span>
                 </div>
                 <div class="total-line total">
                     <span>Total:</span>
-                    <span id="total">$0.00</span>
+                    <span id="total">R0.00</span>
                 </div>
                 <button id="checkout-btn" class="btn-primary" style="width: 100%; margin-top: 1rem;">
                     Proceed to Checkout
