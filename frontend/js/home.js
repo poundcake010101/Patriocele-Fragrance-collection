@@ -1,6 +1,7 @@
 class HomeManager {
     constructor() {
         this.featuredProducts = [];
+        this.eventListenersAttached = false; // Track if listeners are already attached
         this.init();
     }
 
@@ -60,16 +61,28 @@ class HomeManager {
     }
 
     setupEventListeners() {
-        // Handle add to cart clicks
+        // Only attach listeners once
+        if (this.eventListenersAttached) {
+            console.log('Event listeners already attached, skipping...');
+            return;
+        }
+
+        // Handle add to cart clicks with event delegation
         document.addEventListener('click', async (e) => {
             if (e.target.classList.contains('add-to-cart-btn')) {
                 e.preventDefault();
+                e.stopPropagation(); // Prevent multiple executions
+                
+                console.log('Add to cart clicked - home manager');
                 await this.handleAddToCart(
                     e.target.dataset.productId,
                     e.target.dataset.sizeVariant
                 );
             }
         });
+
+        this.eventListenersAttached = true;
+        console.log('Home manager event listeners attached');
     }
 
     async handleAddToCart(productId, sizeVariant = '50ml') {
@@ -131,5 +144,9 @@ class HomeManager {
 
 // Initialize home manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    new HomeManager();
+    // Only initialize if we're on the home page
+    if (document.getElementById('featured-products')) {
+        console.log('Initializing HomeManager...');
+        window.homeManager = new HomeManager();
+    }
 });
