@@ -37,10 +37,17 @@
             <a href="products.html" class="btn-primary" style="background: var(--secondary-color); border: none;">Shop Now</a>
         </section>
 
+        <!-- Featured Products Section -->
         <section class="container" style="padding: 4rem 2rem;">
-            <h2 style="text-align: center; margin-bottom: 2rem;">Featured Fragrances</h2>
+            <div class="section-header">
+                <h2>Featured Fragrances</h2>
+                <p>Discover our curated collection of premium perfumes</p>
+            </div>
             <div class="products-grid" id="featured-products">
                 <!-- Products will be loaded here by JavaScript -->
+            </div>
+            <div style="text-align: center; margin-top: 3rem;">
+                <a href="products.html" class="btn-primary">View All Fragrances</a>
             </div>
         </section>
 
@@ -50,7 +57,7 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; text-align: center;">
                     <div class="feature">
                         <h3>🚚 Free Shipping</h3>
-                        <p>On orders over $100</p>
+                        <p>On orders over R500</p>
                     </div>
                     <div class="feature">
                         <h3>💎 Premium Quality</h3>
@@ -72,11 +79,5 @@
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/home.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const productManager = new ProductManager();
-            productManager.loadFeaturedProducts();
-        });
-    </script>
 </body>
 </html>

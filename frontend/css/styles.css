@@ -1003,20 +1003,128 @@ body {
 .product-description {
     color: var(--text-light);
     font-size: 0.9rem;
+    line-height: 1.4;
     margin: 0.5rem 0;
+    text-align: center;
     min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
+.home-price-section {
+    text-align: center;
+    margin: 1rem 0;
+    padding: 1rem 0;
+    border-top: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.base-price {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 0.25rem;
+}
+
+.base-size {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.fragrance-notes-preview {
+    margin: 0.75rem 0;
+    min-height: 2rem;
+}
+
+.notes-preview {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.note-tag {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    color: var(--text-light);
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    border: 1px solid #dee2e6;
+}
+
+.notes-placeholder {
+    color: var(--text-light);
+    font-style: italic;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.product-occasion {
+    margin: 0.75rem 0;
+}
+
+.occasion-tags {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.occasion-tag {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.occasion-tag-more {
+    background: var(--secondary-color);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+}
+
+.view-details-btn {
+    margin-top: 1rem;
+    width: 100%;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.view-details-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 115, 85, 0.3);
+}
+
 
 /* Ensure product cards are consistent */
 .product-card {
     background: var(--white);
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 1.5rem;
-    box-shadow: var(--shadow);
-    transition: transform 0.3s, box-shadow 0.3s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+    transition: all 0.3s ease;
     height: 100%;
     display: flex;
     flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.product-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
 }
 
 .product-card:hover {
@@ -1028,15 +1136,25 @@ body {
     width: 100%;
     height: 200px;
     object-fit: cover;
-    border-radius: 4px;
+    border-radius: 8px;
     margin-bottom: 1rem;
+    transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-image {
+    transform: scale(1.05);
 }
 
 .product-card h3 {
     margin: 0.5rem 0;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
+    color: var(--text-dark);
+    text-align: center;
+    min-height: 2.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-
 .product-card .price {
     font-weight: bold;
     font-size: 1.2rem;
@@ -1170,4 +1288,22 @@ body {
 
 #admin-link:hover {
     background: var(--primary-color) !important;
+}
+/*section*/
+.section-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.section-header h2 {
+    font-size: 2.5rem;
+    color: var(--text-dark);
+    margin-bottom: 1rem;
+}
+
+.section-header p {
+    font-size: 1.1rem;
+    color: var(--text-light);
+    max-width: 600px;
+    margin: 0 auto;
 }

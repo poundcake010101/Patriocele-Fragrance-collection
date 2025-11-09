@@ -1,7 +1,6 @@
 class HomeManager {
     constructor() {
         this.featuredProducts = [];
-        this.eventListenersAttached = false; // Track if listeners are already attached
         this.init();
     }
 
@@ -39,19 +38,33 @@ class HomeManager {
         let html = '';
         this.featuredProducts.forEach(product => {
             const mainImage = product.images?.[0] || 'https://via.placeholder.com/300x300?text=Perfume';
-            const price = product.size_variants ? Object.values(product.size_variants)[0] : product.price;
-            const firstSize = product.size_variants ? Object.keys(product.size_variants)[0] : '50ml';
+            
+            // Get the smallest size and its price (30ml as base)
+            const basePrice = this.getBasePrice(product);
+            const baseSize = this.getBaseSize(product);
 
             html += `
                 <div class="product-card" data-product-id="${product.id}">
                     <img src="${mainImage}" alt="${product.name}" class="product-image">
                     <h3>${product.name}</h3>
-                    <p class="product-description">${product.description?.substring(0, 60)}...</p>
-                    <div class="price">R${price}</div>
-                    <button class="btn-primary add-to-cart-btn" 
-                            data-product-id="${product.id}"
-                            data-size-variant="${firstSize}">
-                        Add to Cart
+                    <p class="product-description">${product.description?.substring(0, 80)}...</p>
+                    
+                    <div class="fragrance-notes-preview">
+                        ${this.renderFragranceNotesPreview(product.fragrance_notes)}
+                    </div>
+                    
+                    <div class="product-occasion">
+                        ${this.renderOccasionTags(product.occasion)}
+                    </div>
+                    
+                    <div class="home-price-section">
+                        <div class="base-price">From R${basePrice}</div>
+                        <div class="base-size">${baseSize}</div>
+                    </div>
+                    
+                    <button class="btn-primary view-details-btn" 
+                            data-product-id="${product.id}">
+                        View Details & Sizes
                     </button>
                 </div>
             `;
@@ -60,85 +73,68 @@ class HomeManager {
         container.innerHTML = html;
     }
 
-    setupEventListeners() {
-        // Only attach listeners once
-        if (this.eventListenersAttached) {
-            console.log('Event listeners already attached, skipping...');
-            return;
+    getBasePrice(product) {
+        // Get the smallest size price (30ml) or use base price
+        if (product.size_variants && Object.keys(product.size_variants).length > 0) {
+            const sizes = Object.keys(product.size_variants);
+            const smallestSize = sizes.find(size => size.includes('30ml')) || sizes[0];
+            return product.size_variants[smallestSize];
         }
-
-        // Handle add to cart clicks with event delegation
-        document.addEventListener('click', async (e) => {
-            if (e.target.classList.contains('add-to-cart-btn')) {
-                e.preventDefault();
-                e.stopPropagation(); // Prevent multiple executions
-                
-                console.log('Add to cart clicked - home manager');
-                await this.handleAddToCart(
-                    e.target.dataset.productId,
-                    e.target.dataset.sizeVariant
-                );
-            }
-        });
-
-        this.eventListenersAttached = true;
-        console.log('Home manager event listeners attached');
+        return product.price;
     }
 
-    async handleAddToCart(productId, sizeVariant = '50ml') {
-        const user = window.authManager?.getCurrentUser();
+    getBaseSize(product) {
+        // Get the smallest size (30ml) or default
+        if (product.size_variants && Object.keys(product.size_variants).length > 0) {
+            const sizes = Object.keys(product.size_variants);
+            return sizes.find(size => size.includes('30ml')) || sizes[0];
+        }
+        return '30ml';
+    }
+
+    renderFragranceNotesPreview(notes) {
+        if (!notes) return '<div class="notes-placeholder">Fragrance notes available</div>';
         
-        if (!user) {
-            alert('Please login to add items to cart');
-            window.location.href = 'login.html';
-            return;
+        let html = '<div class="notes-preview">';
+        if (notes.top && notes.top.length > 0) {
+            html += `<span class="note-tag">${notes.top[0]}</span>`;
         }
-
-        try {
-            // Check if item already in cart
-            const { data: existingItem } = await window.supabase
-                .from('cart_items')
-                .select('id, quantity')
-                .eq('user_id', user.id)
-                .eq('product_id', productId)
-                .eq('size_variant', sizeVariant)
-                .single();
-
-            if (existingItem) {
-                // Update quantity
-                const { error } = await window.supabase
-                    .from('cart_items')
-                    .update({ quantity: existingItem.quantity + 1 })
-                    .eq('id', existingItem.id);
-
-                if (error) throw error;
-            } else {
-                // Add new item
-                const { error } = await window.supabase
-                    .from('cart_items')
-                    .insert([
-                        {
-                            user_id: user.id,
-                            product_id: parseInt(productId),
-                            quantity: 1,
-                            size_variant: sizeVariant
-                        }
-                    ]);
-
-                if (error) throw error;
-            }
-
-            alert('Product added to cart!');
-            
-            // Update cart count in navbar
-            if (window.authManager) {
-                window.authManager.updateCartCount();
-            }
-            
-        } catch (error) {
-            console.error('Error adding to cart:', error);
-            alert('Error adding product to cart: ' + error.message);
+        if (notes.middle && notes.middle.length > 0) {
+            html += `<span class="note-tag">${notes.middle[0]}</span>`;
         }
+        html += '</div>';
+        return html;
+    }
+
+    renderOccasionTags(occasions) {
+        if (!occasions || occasions.length === 0) return '';
+        
+        let html = '<div class="occasion-tags">';
+        occasions.slice(0, 2).forEach(occasion => {
+            html += `<span class="occasion-tag">${occasion}</span>`;
+        });
+        if (occasions.length > 2) {
+            html += `<span class="occasion-tag-more">+${occasions.length - 2} more</span>`;
+        }
+        html += '</div>';
+        return html;
+    }
+
+    setupEventListeners() {
+        // Handle view details clicks
+        document.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('view-details-btn')) {
+                e.preventDefault();
+                const productId = e.target.dataset.productId;
+                this.viewProductDetails(productId);
+            }
+        });
+    }
+
+    viewProductDetails(productId) {
+        // Redirect to products page with the specific product highlighted
+        // or create a product details modal
+        window.location.href = `products.html?product=${productId}`;
     }
 }
 
