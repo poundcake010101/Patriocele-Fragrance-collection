@@ -1,6 +1,7 @@
 class OrdersManager {
     constructor() {
         this.orders = [];
+        this.currency = 'ZAR';
         this.init();
     }
 
@@ -68,7 +69,11 @@ class OrdersManager {
     }
 
     createOrderCard(order) {
-        const orderDate = new Date(order.created_at).toLocaleDateString();
+        const orderDate = new Date(order.created_at).toLocaleDateString('en-ZA', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
         const itemCount = order.order_items.reduce((sum, item) => sum + item.quantity, 0);
         
         return `
@@ -77,6 +82,7 @@ class OrdersManager {
                     <div>
                         <h3>Order #${order.id}</h3>
                         <p>Placed on ${orderDate}</p>
+                        <p class="order-meta">${itemCount} item${itemCount !== 1 ? 's' : ''} • ${this.getOrderStatusText(order.status)}</p>
                     </div>
                     <div class="order-status">
                         <span class="status-badge status-${order.status}">${order.status}</span>
@@ -93,27 +99,55 @@ class OrdersManager {
                                 <h4>${item.products.name}</h4>
                                 <p>Size: ${item.size_variant} × ${item.quantity}</p>
                             </div>
-                            <div class="item-price">$${item.unit_price}</div>
+                            <div class="item-price">R${item.unit_price}</div>
                         </div>
                     `).join('')}
                 </div>
                 
                 <div class="order-footer">
                     <div class="order-total">
-                        Total: $${order.total_amount}
+                        <strong>Total: R${order.total_amount}</strong>
                     </div>
                     <div class="order-actions">
-                        <button class="btn-outline view-order-btn" data-order-id="${order.id}">
+                        <button class="btn-outline view-order-btn" onclick="ordersManager.viewOrderDetails(${order.id})">
                             View Details
                         </button>
+                        ${order.status === 'delivered' ? `
+                            <button class="btn-primary" onclick="ordersManager.rateOrder(${order.id})">
+                                Rate Products
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
             </div>
         `;
     }
+
+    getOrderStatusText(status) {
+        const statusTexts = {
+            'pending': 'Order Received',
+            'confirmed': 'Processing',
+            'shipped': 'Shipped',
+            'delivered': 'Delivered',
+            'cancelled': 'Cancelled'
+        };
+        return statusTexts[status] || status;
+    }
+
+    viewOrderDetails(orderId) {
+        const order = this.orders.find(o => o.id === orderId);
+        if (order) {
+            alert(`Order #${orderId} Details:\n\nStatus: ${order.status}\nTotal: R${order.total_amount}\nItems: ${order.order_items.length}\n\nFull details page coming soon!`);
+        }
+    }
+
+    rateOrder(orderId) {
+        alert(`Rating feature for order #${orderId} coming soon!`);
+    }
 }
 
 // Initialize orders manager
+let ordersManager;
 document.addEventListener('DOMContentLoaded', function() {
-    new OrdersManager();
+    ordersManager = new OrdersManager();
 });

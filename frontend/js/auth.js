@@ -64,7 +64,9 @@ class AuthManager {
             console.log('Updating UI: User is logged in');
             if (authButtons) authButtons.style.display = 'none';
             if (userMenu) userMenu.style.display = 'flex';
-            if (userEmail) userEmail.textContent = this.currentUser.email;
+            
+            // Show user's name instead of email
+            this.displayUserName();
             
             // Check if user is admin and show admin link
             this.checkAndShowAdminLink();
@@ -77,6 +79,34 @@ class AuthManager {
             if (userMenu) userMenu.style.display = 'none';
             if (cartCount) cartCount.textContent = '0';
             if (adminLink) adminLink.style.display = 'none';
+        }
+    }
+
+    async displayUserName() {
+        const userEmailElement = document.getElementById('user-email');
+        if (!userEmailElement || !this.currentUser) return;
+
+        try {
+            // Get user's full name from the users table
+            const { data: userData, error } = await window.supabase
+                .from('users')
+                .select('full_name')
+                .eq('id', this.currentUser.id)
+                .single();
+
+            if (!error && userData?.full_name) {
+                // Show the user's name
+                userEmailElement.textContent = userData.full_name;
+                console.log('✅ Displaying user name:', userData.full_name);
+            } else {
+                // Fallback to email if no name is set
+                userEmailElement.textContent = this.currentUser.email;
+                console.log('⚠️ No user name found, using email');
+            }
+        } catch (error) {
+            console.error('Error fetching user name:', error);
+            // Fallback to email
+            userEmailElement.textContent = this.currentUser.email;
         }
     }
 
