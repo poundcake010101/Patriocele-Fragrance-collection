@@ -132,8 +132,8 @@ class HomeManager {
     }
 
     viewProductDetails(productId) {
+        console.log('🔗 Redirecting to product details:', productId);
         // Redirect to products page with the specific product highlighted
-        // or create a product details modal
         window.location.href = `products.html?product=${productId}`;
     }
 }
