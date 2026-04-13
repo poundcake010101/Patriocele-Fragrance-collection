@@ -8,67 +8,71 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-     <nav class="navbar">
+    <nav class="navbar">
         <div class="nav-brand">Patriocele Fragrance Collection</div>
-            <div class="nav-links">
-                <a href="index.html">Home</a>
-                <a href="products.html">Perfumes</a>
-                <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
-                <div id="auth-buttons">
-                    <a href="login.html" class="btn-outline">Login</a>
-                    <a href="signup.html" class="btn-primary">Sign Up</a>
-                </div>
-                <div id="user-menu" style="display: none;">
-                    <span id="user-email"></span>
-                    <a href="orders.html">Orders</a>
-                    <a href="profile.html">Profile</a>
-                    <!-- Admin link will be shown only for admin users -->
-                    <a href="admin.html" id="admin-link" style="display: none;">Admin Panel</a>
-                    <button id="logout-btn" class="btn-outline">Logout</button>
-                </div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="products.html">Perfumes</a>
+            <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
+            <div id="auth-buttons">
+                <a href="login.html" class="btn-outline">Login</a>
+                <a href="signup.html" class="btn-primary">Sign Up</a>
+            </div>
+            <div id="user-menu" style="display: none;">
+                <span id="user-email"></span>
+                <a href="orders.html">Orders</a>
+                <a href="profile.html">Profile</a>
+                <a href="admin.html" id="admin-link" style="display: none;">Admin Panel</a>
+                <button id="logout-btn" class="btn-outline">Logout</button>
+            </div>
         </div>
     </nav>
 
     <main>
-        <!-- Hero Section -->
-        <section class="hero" style="background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1547887537-6158d64c35b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80'); background-size: cover; background-position: center; color: white; text-align: center; padding: 6rem 2rem;">
-            <h1 style="font-size: 3rem; margin-bottom: 1rem;">Discover Your Signature Scent</h1>
-            <p style="font-size: 1.2rem; margin-bottom: 2rem;">Luxury fragrances for every occasion</p>
-            <a href="products.html" class="btn-primary" style="background: var(--secondary-color); border: none;">Shop Now</a>
+        <section class="hero" style="background: linear-gradient(rgba(44,35,24,0.62), rgba(44,35,24,0.62)), url('https://images.unsplash.com/photo-1547887537-6158d64c35b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80');">
+            <div style="max-width: 640px; margin: 0 auto;">
+                <div style="font-size: 0.7rem; letter-spacing: 0.4em; text-transform: uppercase; color: var(--gold); margin-bottom: 1.25rem; font-weight: 500;">Luxury Fragrance House</div>
+                <h1>Discover Your<br>Signature Scent</h1>
+                <p>Curated fragrances for every occasion</p>
+                <a href="products.html" class="btn-primary" style="font-size: 0.75rem; padding: 0.75rem 2.5rem;">Shop Collection</a>
+            </div>
         </section>
 
-        <!-- Featured Products Section -->
-        <section class="container" style="padding: 4rem 2rem;">
+        <section class="container" style="padding: 5rem 2rem;">
             <div class="section-header">
+                <div style="font-size: 0.68rem; letter-spacing: 0.35em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.75rem; font-weight: 500;">Curated Picks</div>
                 <h2>Featured Fragrances</h2>
-                <p>Discover our curated collection of premium perfumes</p>
+                <p>Discover our collection of premium perfumes, each a work of art</p>
             </div>
             <div class="products-grid" id="featured-products">
-                <!-- Products will be loaded here by JavaScript -->
+                <!-- Products loaded by JS -->
             </div>
             <div style="text-align: center; margin-top: 3rem;">
-                <a href="products.html" class="btn-primary">View All Fragrances</a>
+                <a href="products.html" class="btn-outline" style="color: var(--primary); border-color: var(--border-strong); padding: 0.75rem 2.5rem;">View All Fragrances</a>
             </div>
         </section>
 
-        <!-- Features -->
-        <section style="background: var(--white); padding: 4rem 2rem;">
-            <div class="container">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; text-align: center;">
-                    <div class="feature">
-                        <h3>🚚 Free Shipping</h3>
+        <section style="background: var(--dark); padding: 5rem 2rem;">
+            <div class="container" style="padding: 0;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0; text-align: center;">
+                    <div class="feature" style="border-right: 1px solid rgba(212,175,55,0.12);">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.75rem; color: var(--gold);">&#10003;</div>
+                        <h3 style="color: var(--cream);">Free Shipping</h3>
                         <p>On orders over R500</p>
                     </div>
-                    <div class="feature">
-                        <h3>💎 Premium Quality</h3>
+                    <div class="feature" style="border-right: 1px solid rgba(212,175,55,0.12);">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.75rem; color: var(--gold);">&#9670;</div>
+                        <h3 style="color: var(--cream);">Premium Quality</h3>
                         <p>Luxury fragrances guaranteed</p>
                     </div>
-                    <div class="feature">
-                        <h3>🔒 Secure Payment</h3>
+                    <div class="feature" style="border-right: 1px solid rgba(212,175,55,0.12);">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.75rem; color: var(--gold);">&#128274;</div>
+                        <h3 style="color: var(--cream);">Secure Payment</h3>
                         <p>Your data is protected</p>
                     </div>
                     <div class="feature">
-                        <h3>💬 Expert Advice</h3>
+                        <div style="font-size: 1.5rem; margin-bottom: 0.75rem; color: var(--gold);">&#9825;</div>
+                        <h3 style="color: var(--cream);">Expert Advice</h3>
                         <p>Fragrance consultants available</p>
                     </div>
                 </div>

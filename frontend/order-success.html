@@ -6,46 +6,108 @@
     <title>Order Confirmed - Patriocele Fragrance Collection</title>
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .confirm-wrap { animation: fadeUp 0.6s ease both; }
+        .confirm-icon-ring {
+            width: 80px; height: 80px; border-radius: 50%;
+            border: 2px solid var(--gold);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 2rem;
+            position: relative;
+        }
+        .confirm-icon-ring::before {
+            content: '';
+            position: absolute; inset: 6px;
+            border-radius: 50%;
+            background: var(--gold);
+            opacity: 0.12;
+        }
+        .confirm-checkmark {
+            font-size: 1.8rem;
+            color: var(--gold);
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.88rem;
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label {
+            font-size: 0.68rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+        .detail-value {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1rem;
+            color: var(--text-dark);
+        }
+    </style>
 </head>
 <body>
-     <nav class="navbar">
+    <nav class="navbar">
         <div class="nav-brand">Patriocele Fragrance Collection</div>
-            <div class="nav-links">
-                <a href="index.html">Home</a>
-                <a href="products.html">Perfumes</a>
-                <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
-                <div id="auth-buttons">
-                    <a href="login.html" class="btn-outline">Login</a>
-                    <a href="signup.html" class="btn-primary">Sign Up</a>
-                </div>
-                <div id="user-menu" style="display: none;">
-                    <span id="user-email"></span>
-                    <a href="orders.html">Orders</a>
-                    <a href="profile.html">Profile</a>
-                    <!-- Admin link will be shown only for admin users -->
-                    <a href="admin.html" id="admin-link" style="display: none;">Admin Panel</a>
-                    <button id="logout-btn" class="btn-outline">Logout</button>
-                </div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="products.html">Perfumes</a>
+            <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
+            <div id="auth-buttons">
+                <a href="login.html" class="btn-outline">Login</a>
+                <a href="signup.html" class="btn-primary">Sign Up</a>
+            </div>
+            <div id="user-menu" style="display: none;">
+                <span id="user-email"></span>
+                <a href="orders.html">Orders</a>
+                <a href="profile.html">Profile</a>
+                <a href="admin.html" id="admin-link" style="display: none;">Admin Panel</a>
+                <button id="logout-btn" class="btn-outline">Logout</button>
+            </div>
         </div>
     </nav>
 
-    <div class="container">
-        <div style="max-width: 600px; margin: 0 auto; text-align: center; padding: 4rem 0;">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
-            <h1>Order Confirmed!</h1>
-            <p style="font-size: 1.2rem; margin-bottom: 2rem; color: var(--text-light);">
-                Thank you for your purchase. Your order has been confirmed and will be shipped soon.
-            </p>
-            
-            <div id="order-details" style="background: var(--white); padding: 2rem; border-radius: 8px; margin-bottom: 2rem;">
-                <p><strong>Order ID:</strong> <span id="order-id">Loading...</span></p>
-                <p><strong>Total Amount:</strong> <span id="order-total">Loading...</span></p>
-                <p><strong>Estimated Delivery:</strong> 3-5 business days</p>
+    <div class="container" style="max-width: 600px; margin: 0 auto; padding: 5rem 2rem;">
+        <div class="confirm-wrap" style="text-align: center;">
+            <div class="confirm-icon-ring">
+                <span class="confirm-checkmark">&#10003;</span>
             </div>
-            
+
+            <div style="font-size: 0.68rem; letter-spacing: 0.35em; color: var(--gold); text-transform: uppercase; font-weight: 500; margin-bottom: 0.75rem;">Order Placed</div>
+            <h1 style="font-family: 'Cormorant Garamond', serif; font-size: 3rem; font-weight: 300; color: var(--text-dark); margin-bottom: 1rem; line-height: 1;">Thank You</h1>
+            <p style="font-size: 0.9rem; color: var(--text-light); max-width: 400px; margin: 0 auto 2.5rem; line-height: 1.8; letter-spacing: 0.03em;">
+                Your order has been confirmed. We'll have your fragrance on its way to you shortly.
+            </p>
+
+            <div class="pfc-card" style="text-align: left; margin-bottom: 2.5rem;">
+                <div class="detail-row">
+                    <span class="detail-label">Order ID</span>
+                    <span class="detail-value" id="order-id">Loading...</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Total Amount</span>
+                    <span class="detail-value" id="order-total">Loading...</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Estimated Delivery</span>
+                    <span class="detail-value">3–5 business days</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status</span>
+                    <span class="status-badge status-confirmed">Confirmed</span>
+                </div>
+            </div>
+
             <div style="display: flex; gap: 1rem; justify-content: center;">
-                <a href="orders.html" class="btn-primary">View My Orders</a>
-                <a href="products.html" class="btn-outline">Continue Shopping</a>
+                <a href="orders.html" class="btn-primary" style="background: var(--dark); color: var(--gold); padding: 0.75rem 2rem;">View My Orders</a>
+                <a href="products.html" class="btn-outline" style="color: var(--primary); border-color: var(--border-strong); padding: 0.75rem 2rem;">Continue Shopping</a>
             </div>
         </div>
     </div>
@@ -54,22 +116,20 @@
     <script src="js/auth.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async function() {
-            // Get order ID from URL
             const urlParams = new URLSearchParams(window.location.search);
             const orderId = urlParams.get('order_id');
-            
+
             if (orderId) {
                 document.getElementById('order-id').textContent = orderId;
-                
-                // Fetch order details
-                const { data: order, error } = await window.supabase
+
+                const { data: order } = await window.supabase
                     .from('orders')
                     .select('total_amount')
                     .eq('id', orderId)
                     .single();
-                    
+
                 if (order) {
-                    document.getElementById('order-total').textContent = `$${order.total_amount}`;
+                    document.getElementById('order-total').textContent = `R${parseFloat(order.total_amount).toFixed(2)}`;
                 }
             }
         });

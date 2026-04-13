@@ -8,35 +8,37 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-     <nav class="navbar">
+    <nav class="navbar">
         <div class="nav-brand">Patriocele Fragrance Collection</div>
-            <div class="nav-links">
-                <a href="index.html">Home</a>
-                <a href="products.html">Perfumes</a>
-                <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
-                <div id="auth-buttons">
-                    <a href="login.html" class="btn-outline">Login</a>
-                    <a href="signup.html" class="btn-primary">Sign Up</a>
-                </div>
-                <div id="user-menu" style="display: none;">
-                    <span id="user-email"></span>
-                    <a href="orders.html">Orders</a>
-                    <a href="profile.html">Profile</a>
-                    <!-- Admin link will be shown only for admin users -->
-                    <a href="admin.html" id="admin-link" style="display: none;">Admin Panel</a>
-                    <button id="logout-btn" class="btn-outline">Logout</button>
-                </div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="products.html">Perfumes</a>
+            <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
+            <div id="auth-buttons">
+                <a href="login.html" class="btn-outline">Login</a>
+                <a href="signup.html" class="btn-primary">Sign Up</a>
+            </div>
+            <div id="user-menu" style="display: none;">
+                <span id="user-email"></span>
+                <a href="orders.html">Orders</a>
+                <a href="profile.html">Profile</a>
+                <a href="admin.html" id="admin-link" style="display: none;">Admin Panel</a>
+                <button id="logout-btn" class="btn-outline">Logout</button>
+            </div>
         </div>
     </nav>
 
     <div class="container">
+        <div style="margin-bottom: 2rem;">
+            <div class="page-eyebrow">Account</div>
+            <h1 class="page-title">My Profile</h1>
+            <div class="gold-rule"></div>
+        </div>
+
         <div class="profile-layout">
-            <!-- Sidebar -->
             <div class="profile-sidebar">
                 <div class="profile-avatar">
-                    <div class="avatar-placeholder">
-                        ${getInitials()}
-                    </div>
+                    <div class="avatar-placeholder" id="avatar-initials">?</div>
                     <h3 id="profile-name">Loading...</h3>
                     <p id="profile-email">Loading...</p>
                 </div>
@@ -48,9 +50,8 @@
                 </nav>
             </div>
 
-            <!-- Main Content -->
             <div class="profile-content">
-                <!-- Personal Info Tab -->
+                <!-- Personal Info -->
                 <div id="personal-tab" class="profile-tab active">
                     <h2>Personal Information</h2>
                     <form id="personal-form">
@@ -73,22 +74,20 @@
                             <label for="phone">Phone Number</label>
                             <input type="tel" id="phone" name="phone">
                         </div>
-                        <button type="submit" class="btn-primary">Save Changes</button>
+                        <button type="submit" class="btn-primary" style="background: var(--dark); color: var(--gold);">Save Changes</button>
                     </form>
                 </div>
 
-                <!-- Addresses Tab -->
+                <!-- Addresses -->
                 <div id="addresses-tab" class="profile-tab">
                     <div class="tab-header">
                         <h2>Saved Addresses</h2>
-                        <button class="btn-primary" id="add-address-btn">Add New Address</button>
+                        <button class="btn-primary" id="add-address-btn" style="background: var(--dark); color: var(--gold);">Add New Address</button>
                     </div>
-                    <div id="addresses-list">
-                        <!-- Addresses will be loaded here -->
-                    </div>
+                    <div id="addresses-list"></div>
                 </div>
 
-                <!-- Security Tab -->
+                <!-- Security -->
                 <div id="security-tab" class="profile-tab">
                     <h2>Security Settings</h2>
                     <form id="password-form">
@@ -104,36 +103,33 @@
                             <label for="confirm-password">Confirm New Password</label>
                             <input type="password" id="confirm-password" required>
                         </div>
-                        <button type="submit" class="btn-primary">Update Password</button>
+                        <button type="submit" class="btn-primary" style="background: var(--dark); color: var(--gold);">Update Password</button>
                     </form>
                 </div>
 
-                <!-- Preferences Tab -->
+                <!-- Preferences -->
                 <div id="preferences-tab" class="profile-tab">
                     <h2>Notification Preferences</h2>
                     <form id="preferences-form">
                         <div class="preference-item">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="email-promotions" name="email-promotions">
-                                <span class="checkmark"></span>
-                                Receive promotional emails?
+                                Receive promotional emails
                             </label>
                         </div>
                         <div class="preference-item">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="email-order-updates" name="email-order-updates" checked>
-                                <span class="checkmark"></span>
                                 Receive order updates via email
                             </label>
                         </div>
                         <div class="preference-item">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="sms-notifications" name="sms-notifications">
-                                <span class="checkmark"></span>
                                 Receive SMS notifications
                             </label>
                         </div>
-                        <button type="submit" class="btn-primary">Save Preferences</button>
+                        <button type="submit" class="btn-primary" style="margin-top: 0.5rem; background: var(--dark); color: var(--gold);">Save Preferences</button>
                     </form>
                 </div>
             </div>
@@ -150,12 +146,10 @@
             <form id="address-form">
                 <div class="modal-body">
                     <input type="hidden" id="address-id">
-                    
                     <div class="form-group">
                         <label for="address-label">Address Label</label>
                         <input type="text" id="address-label" placeholder="Home, Work, etc." required>
                     </div>
-
                     <div class="form-row">
                         <div class="form-group">
                             <label for="address-first-name">First Name</label>
@@ -166,48 +160,42 @@
                             <input type="text" id="address-last-name" required>
                         </div>
                     </div>
-
                     <div class="form-group">
                         <label for="address-line1">Address Line 1</label>
                         <input type="text" id="address-line1" required>
                     </div>
-
                     <div class="form-group">
                         <label for="address-line2">Address Line 2 (Optional)</label>
                         <input type="text" id="address-line2">
                     </div>
-
-                    <div class="form-row">
+                    <div class="form-row-3">
                         <div class="form-group">
                             <label for="address-city">City</label>
                             <input type="text" id="address-city" required>
                         </div>
                         <div class="form-group">
-                            <label for="address-state">State</label>
+                            <label for="address-state">Province</label>
                             <input type="text" id="address-state" required>
                         </div>
                         <div class="form-group">
-                            <label for="address-zip">ZIP Code</label>
+                            <label for="address-zip">Postal Code</label>
                             <input type="text" id="address-zip" required>
                         </div>
                     </div>
-
                     <div class="form-group">
                         <label for="address-phone">Phone Number</label>
                         <input type="tel" id="address-phone" required>
                     </div>
-
                     <div class="form-group">
                         <label class="checkbox-label">
                             <input type="checkbox" id="address-default">
-                            <span class="checkmark"></span>
                             Set as default shipping address
                         </label>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-outline close-modal">Cancel</button>
-                    <button type="submit" class="btn-primary">Save Address</button>
+                    <button type="submit" class="btn-primary" style="background: var(--dark); color: var(--gold);">Save Address</button>
                 </div>
             </form>
         </div>

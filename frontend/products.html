@@ -8,42 +8,46 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-     <nav class="navbar">
+    <nav class="navbar">
         <div class="nav-brand">Patriocele Fragrance Collection</div>
-            <div class="nav-links">
-                <a href="index.html">Home</a>
-                <a href="products.html">Perfumes</a>
-                <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
-                <div id="auth-buttons">
-                    <a href="login.html" class="btn-outline">Login</a>
-                    <a href="signup.html" class="btn-primary">Sign Up</a>
-                </div>
-                <div id="user-menu" style="display: none;">
-                    <span id="user-email"></span>
-                    <a href="orders.html">Orders</a>
-                    <a href="profile.html">Profile</a>
-                    <!-- Admin link will be shown only for admin users -->
-                    <a href="admin.html" id="admin-link" style="display: none;">Admin Panel</a>
-                    <button id="logout-btn" class="btn-outline">Logout</button>
-                </div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="products.html">Perfumes</a>
+            <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
+            <div id="auth-buttons">
+                <a href="login.html" class="btn-outline">Login</a>
+                <a href="signup.html" class="btn-primary">Sign Up</a>
+            </div>
+            <div id="user-menu" style="display: none;">
+                <span id="user-email"></span>
+                <a href="orders.html">Orders</a>
+                <a href="profile.html">Profile</a>
+                <a href="admin.html" id="admin-link" style="display: none;">Admin Panel</a>
+                <button id="logout-btn" class="btn-outline">Logout</button>
+            </div>
         </div>
     </nav>
 
+    <!-- Page header banner -->
+    <div style="background: var(--dark); padding: 3rem 2rem; text-align: center;">
+        <div style="font-size: 0.68rem; letter-spacing: 0.35em; color: rgba(212,175,55,0.6); text-transform: uppercase; margin-bottom: 0.75rem; font-weight: 500;">The Collection</div>
+        <h1 style="font-family: 'Cormorant Garamond', serif; font-size: 2.8rem; font-weight: 300; color: var(--cream); letter-spacing: 0.05em;">Our Fragrance Collection</h1>
+        <div style="width: 40px; height: 1px; background: var(--gold); margin: 1.25rem auto 0;"></div>
+    </div>
+
     <div class="container">
-        <h1>Our Fragrance Collection</h1>
-        
-        <div class="filters">
+        <div class="filters" style="margin-top: 2rem;">
             <select id="category-filter">
                 <option value="">All Categories</option>
             </select>
             <select id="brand-filter">
                 <option value="">All Brands</option>
             </select>
-            <input type="text" id="search-input" placeholder="Search perfumes...">
+            <input type="text" id="search-input" placeholder="Search fragrances...">
         </div>
 
         <div class="products-grid" id="products-grid">
-            <!-- Products will be loaded here -->
+            <!-- Products loaded by JS -->
         </div>
     </div>
 

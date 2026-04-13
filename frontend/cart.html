@@ -10,56 +10,68 @@
 <body>
     <nav class="navbar">
         <div class="nav-brand">Patriocele Fragrance Collection</div>
-            <div class="nav-links">
-                <a href="index.html">Home</a>
-                <a href="products.html">Perfumes</a>
-                <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
-                <div id="auth-buttons">
-                    <a href="login.html" class="btn-outline">Login</a>
-                    <a href="signup.html" class="btn-primary">Sign Up</a>
-                </div>
-                <div id="user-menu" style="display: none;">
-                    <span id="user-email"></span>
-                    <a href="orders.html">Orders</a>
-                    <a href="profile.html">Profile</a>
-                    <!-- Admin link will be shown only for admin users -->
-                    <a href="admin.html" id="admin-link" style="display: none;">Admin Panel</a>
-                    <button id="logout-btn" class="btn-outline">Logout</button>
-                </div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="products.html">Perfumes</a>
+            <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
+            <div id="auth-buttons">
+                <a href="login.html" class="btn-outline">Login</a>
+                <a href="signup.html" class="btn-primary">Sign Up</a>
+            </div>
+            <div id="user-menu" style="display: none;">
+                <span id="user-email"></span>
+                <a href="orders.html">Orders</a>
+                <a href="profile.html">Profile</a>
+                <a href="admin.html" id="admin-link" style="display: none;">Admin Panel</a>
+                <button id="logout-btn" class="btn-outline">Logout</button>
+            </div>
         </div>
     </nav>
 
     <div class="container">
-        <h1>Shopping Cart</h1>
-        <div id="cart-empty" style="display: none;">
-            <p>Your cart is empty</p>
+        <div style="margin-bottom: 2.5rem;">
+            <div class="page-eyebrow">Your Selection</div>
+            <h1 class="page-title">Shopping Cart</h1>
+            <div class="gold-rule"></div>
+        </div>
+
+        <div id="cart-empty" style="display: none; text-align: center; padding: 5rem 2rem;">
+            <div style="font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 300; color: var(--text-mid); margin-bottom: 1rem;">Your cart is empty</div>
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 2rem; letter-spacing: 0.05em;">Discover our curated fragrance collection.</p>
             <a href="products.html" class="btn-primary">Browse Perfumes</a>
         </div>
-        <div id="cart-items">
-            <!-- Cart items will be loaded here -->
-        </div>
-        <div id="cart-summary" style="display: none;">
-            <div class="cart-totals">
-                <h3>Order Summary</h3>
-                <div class="total-line">
-                    <span>Subtotal:</span>
-                    <span id="subtotal">R0.00</span>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 3rem; align-items: start;">
+            <div>
+                <div id="cart-items">
+                    <!-- Cart items loaded by JS -->
                 </div>
-                <div class="total-line">
-                    <span>Shipping:</span>
-                    <span id="shipping">R49.99</span>
+            </div>
+
+            <div id="cart-summary" style="display: none;">
+                <div class="cart-totals">
+                    <h3>Order Summary</h3>
+                    <div class="total-line">
+                        <span>Subtotal</span>
+                        <span id="subtotal">R0.00</span>
+                    </div>
+                    <div class="total-line">
+                        <span>Shipping</span>
+                        <span id="shipping">R49.99</span>
+                    </div>
+                    <div class="total-line">
+                        <span>Tax (15% VAT)</span>
+                        <span id="tax">R0.00</span>
+                    </div>
+                    <div class="total-line total">
+                        <span>Total</span>
+                        <span id="total">R0.00</span>
+                    </div>
+                    <button id="checkout-btn" class="btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 1rem; background: var(--dark); color: var(--gold);">
+                        Proceed to Checkout
+                    </button>
+                    <a href="products.html" style="display: block; text-align: center; margin-top: 1rem; font-size: 0.75rem; color: var(--text-light); text-decoration: none; letter-spacing: 0.1em;">Continue Shopping</a>
                 </div>
-                <div class="total-line">
-                    <span>Tax (15% VAT):</span>
-                    <span id="tax">R0.00</span>
-                </div>
-                <div class="total-line total">
-                    <span>Total:</span>
-                    <span id="total">R0.00</span>
-                </div>
-                <button id="checkout-btn" class="btn-primary" style="width: 100%; margin-top: 1rem;">
-                    Proceed to Checkout
-                </button>
             </div>
         </div>
     </div>

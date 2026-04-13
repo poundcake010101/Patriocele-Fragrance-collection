@@ -8,36 +8,40 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-     <nav class="navbar">
+    <nav class="navbar">
         <div class="nav-brand">Patriocele Fragrance Collection</div>
-            <div class="nav-links">
-                <a href="index.html">Home</a>
-                <a href="products.html">Perfumes</a>
-                <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
-                <div id="auth-buttons">
-                    <a href="login.html" class="btn-outline">Login</a>
-                    <a href="signup.html" class="btn-primary">Sign Up</a>
-                </div>
-                <div id="user-menu" style="display: none;">
-                    <span id="user-email"></span>
-                    <a href="orders.html">Orders</a>
-                    <a href="profile.html">Profile</a>
-                    <!-- Admin link will be shown only for admin users -->
-                    <a href="admin.html" id="admin-link" style="display: none;">Admin Panel</a>
-                    <button id="logout-btn" class="btn-outline">Logout</button>
-                </div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="products.html">Perfumes</a>
+            <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
+            <div id="auth-buttons">
+                <a href="login.html" class="btn-outline">Login</a>
+                <a href="signup.html" class="btn-primary">Sign Up</a>
+            </div>
+            <div id="user-menu" style="display: none;">
+                <span id="user-email"></span>
+                <a href="orders.html">Orders</a>
+                <a href="profile.html">Profile</a>
+                <a href="admin.html" id="admin-link" style="display: none;">Admin Panel</a>
+                <button id="logout-btn" class="btn-outline">Logout</button>
+            </div>
         </div>
     </nav>
 
     <div class="container">
-        <h1>My Orders</h1>
-        
-        <div id="orders-list">
-            <!-- Orders will be loaded here -->
+        <div style="margin-bottom: 2.5rem;">
+            <div class="page-eyebrow">Account</div>
+            <h1 class="page-title">My Orders</h1>
+            <div class="gold-rule"></div>
         </div>
-        
-        <div id="no-orders" style="display: none; text-align: center; padding: 4rem;">
-            <p style="font-size: 1.2rem; margin-bottom: 1rem;">You haven't placed any orders yet.</p>
+
+        <div id="orders-list">
+            <!-- Orders loaded by JS -->
+        </div>
+
+        <div id="no-orders" style="display: none; text-align: center; padding: 5rem 2rem; border: 1px dashed var(--border); border-radius: 4px; background: var(--white);">
+            <div style="font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 300; color: var(--text-mid); margin-bottom: 1rem;">No orders yet</div>
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 2rem; letter-spacing: 0.05em;">Your fragrance journey starts with your first purchase.</p>
             <a href="products.html" class="btn-primary">Start Shopping</a>
         </div>
     </div>
