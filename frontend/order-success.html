@@ -115,24 +115,55 @@
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', async function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const orderId = urlParams.get('order_id');
+        document.addEventListener('DOMContentLoaded', async function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('order_id');
 
-            if (orderId) {
-                document.getElementById('order-id').textContent = orderId;
+        // 🔥 WAIT for auth properly
+        await window.authManager.waitForAuth();
 
-                const { data: order } = await window.supabase
-                    .from('orders')
-                    .select('total_amount')
-                    .eq('id', orderId)
-                    .single();
+        const user = window.authManager.getCurrentUser();
 
-                if (order) {
-                    document.getElementById('order-total').textContent = `R${parseFloat(order.total_amount).toFixed(2)}`;
-                }
+        if (orderId) {
+            document.getElementById('order-id').textContent = orderId;
+
+            const { data: order } = await window.supabase
+                .from('orders')
+                .select('total_amount')
+                .eq('id', orderId)
+                .single();
+
+            if (order) {
+                document.getElementById('order-total').textContent =
+                    `R${parseFloat(order.total_amount).toFixed(2)}`;
             }
-        });
+        }
+
+        // 🔥 FORCE CART CLEAR (no conditionals that block execution)
+        try {
+            if (!user) {
+                console.log("No user found on success page");
+                return;
+            }
+
+            const { error } = await window.supabase
+                .from('cart_items')
+                .delete()
+                .eq('user_id', user.id);
+
+            if (error) {
+                console.error("Cart clear failed:", error);
+            } else {
+                console.log("Cart cleared successfully");
+            }
+
+            // optional: update navbar count if function exists
+            window.authManager?.updateCartCount?.();
+
+        } catch (err) {
+            console.error("Cart clearing error:", err);
+        }
+    });
     </script>
 </body>
 </html>

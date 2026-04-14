@@ -28,8 +28,13 @@ exports.handler = async (event) => {
 
         switch (paymentStatus) {
             case 'COMPLETE':
+                await supabase
+                .from('cart_items')
+                .delete()
+                .eq('user_id', paymentData.custom_str1);
                 orderStatus = 'confirmed';
                 paymentStatusDb = 'paid';
+                
                 break;
             case 'CANCELLED':
                 orderStatus = 'cancelled';

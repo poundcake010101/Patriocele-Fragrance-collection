@@ -222,9 +222,9 @@ class CheckoutManager {
         const user = window.authManager.getCurrentUser();
         
         // Create return URLs
-        const returnUrl = `${window.location.origin}/order-success.html?order_id=${order.id}`;
-        const cancelUrl = `${window.location.origin}/checkout.html?cancelled=true&order_id=${order.id}`;
-        
+        const returnUrl = `${window.location.origin}/frontend/order-success.html?order_id=${order.id}`;
+        const cancelUrl = `${window.location.origin}/frontend/checkout.html?cancelled=true&order_id=${order.id}`;
+       
         // PayFast payment data - SIMPLIFIED VERSION
         const paymentData = {
             // 🔑 PAYFAST TEST CREDENTIALS
@@ -233,7 +233,7 @@ class CheckoutManager {
             
             return_url: returnUrl,
             cancel_url: cancelUrl,
-            // notify_url: `${window.location.origin}/.netlify/functions/payfast-notify`, // Remove for now
+            notify_url: `${window.location.origin}/.netlify/functions/payfast-notify`, 
             
             // Buyer details
             name_first: (shippingData.get('firstName') || 'Test').substring(0, 100),
@@ -244,18 +244,43 @@ class CheckoutManager {
             // Order details
             m_payment_id: order.id.toString(),
             amount: amount.toFixed(2),
-            item_name: `Patriocele Fragrance Order #${order.id}`.substring(0, 100),
-            item_description: `${this.cartItems.length} perfume item(s)`.substring(0, 255),
+            item_name: `Order #${order.id}`,
+
+            //email confirmation
+            /*currency: 'ZAR',
+            email_confirmation: '1',
+            confirmation_address: (shippingData.get('email') || user?.email),*/
+
             
             // Custom data for tracking
             custom_int1: order.id,
             custom_str1: user.id
         };
-
+        paymentData.signature = this.generateSignature(paymentData);
         // Generate and redirect to PayFast
         const payfastUrl = this.generatePayFastUrl(paymentData);
         console.log('Redirecting to PayFast:', payfastUrl);
         window.location.href = payfastUrl;
+    }
+
+    generateSignature(data, passphrase = '') {
+        const sortedKeys = Object.keys(data).sort();
+
+        let queryString = '';
+
+        sortedKeys.forEach(key => {
+            if (data[key] !== '') {
+                queryString += `${key}=${encodeURIComponent(data[key]).replace(/%20/g, '+')}&`;
+            }
+        });
+
+        queryString = queryString.slice(0, -1);
+
+        if (passphrase) {
+            queryString += `&passphrase=${encodeURIComponent(passphrase).replace(/%20/g, '+')}`;
+        }
+
+        return CryptoJS.MD5(queryString).toString();
     }
 
     generatePayFastUrl(paymentData) {
@@ -265,7 +290,7 @@ class CheckoutManager {
         
         // Add all payment data as parameters
         Object.keys(paymentData).forEach(key => {
-            if (paymentData[key] && paymentData[key] !== '') {
+            if (paymentData[key] !== undefined && paymentData[key] !== null && paymentData[key] !== '') {
                 params.append(key, paymentData[key].toString());
             }
         });
