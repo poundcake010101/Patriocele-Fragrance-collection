@@ -29,7 +29,7 @@
     </nav>
 
     <div style="display: flex; min-height: calc(100vh - 64px); align-items: stretch;">
-        <!-- Left panel -->
+        <!-- Left panel (unchanged) -->
         <div style="width: 42%; background: var(--dark); display: flex; flex-direction: column; justify-content: flex-end; padding: 3rem; position: relative; overflow: hidden;">
             <div style="position: absolute; top: -80px; right: -60px; width: 300px; height: 300px; border-radius: 50%; border: 1px solid rgba(212,175,55,0.12); pointer-events: none;"></div>
             <div style="position: absolute; top: -30px; right: -10px; width: 180px; height: 180px; border-radius: 50%; border: 1px solid rgba(212,175,55,0.08); pointer-events: none;"></div>
@@ -46,18 +46,19 @@
             </div>
         </div>
 
-        <!-- Right panel -->
+        <!-- Right panel (login form + social buttons) -->
         <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 3rem 4rem; background: var(--cream);">
             <div style="display: flex; justify-content: flex-end; margin-bottom: 3rem;">
                 <a href="signup.html" style="font-size: 0.78rem; color: var(--primary); text-decoration: none; letter-spacing: 0.1em; border-bottom: 1px solid rgba(139,115,85,0.3); padding-bottom: 2px;">New here? Create account</a>
             </div>
 
-            <div style="margin-bottom: 2.5rem;">
+            <div style="margin-bottom: 2rem;">
                 <div style="font-size: 0.68rem; letter-spacing: 0.35em; color: var(--gold); text-transform: uppercase; font-weight: 500; margin-bottom: 0.75rem;">Welcome back</div>
                 <div style="font-family: 'Cormorant Garamond', serif; font-size: 2.4rem; font-weight: 300; color: var(--text-dark); line-height: 1.1; margin-bottom: 0.5rem;">Sign in to<br>your account</div>
                 <div style="font-size: 0.85rem; color: var(--text-light);">Continue your fragrance journey.</div>
             </div>
 
+            <!-- Email/Password form -->
             <div class="form-group">
                 <label for="email">Email Address</label>
                 <input type="email" id="email" name="email" placeholder="you@example.com" required>
@@ -66,10 +67,36 @@
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" placeholder="Your password" required>
             </div>
-
             <button id="login-btn" class="btn-primary" style="width: 100%; padding: 1rem; margin-top: 0.5rem; font-size: 0.75rem; background: var(--dark); color: var(--gold);">Sign In</button>
 
             <div id="message" style="margin-top: 0.75rem; font-size: 0.8rem; text-align: center; letter-spacing: 0.05em;"></div>
+
+            <!-- Divider -->
+            <div style="display: flex; align-items: center; margin: 1.5rem 0;">
+                <div style="flex: 1; height: 1px; background: rgba(139,115,85,0.2);"></div>
+                <div style="padding: 0 1rem; font-size: 0.7rem; color: var(--text-light); letter-spacing: 0.1em;">OR CONTINUE WITH</div>
+                <div style="flex: 1; height: 1px; background: rgba(139,115,85,0.2);"></div>
+            </div>
+
+            <!-- Social login buttons -->
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <button id="google-login" class="social-btn" style="background: #fff; border: 1px solid #ddd; padding: 0.6rem 1rem; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                    Google
+                </button>
+                <button id="facebook-login" class="social-btn" style="background: #1877F2; color: white; border: none; padding: 0.6rem 1rem; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z"/></svg>
+                    Facebook
+                </button>
+                <button id="apple-login" class="social-btn" style="background: #000; color: white; border: none; padding: 0.6rem 1rem; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C4.94 18.44 4.1 15.7 4.5 13.11c.2-1.3.78-2.48 1.65-3.42.86-.93 2-1.5 3.26-1.52 1.28-.02 2.48.47 3.38.47.9 0 2.3-.6 3.84-.52 1.06.04 2.07.42 2.85 1.11-1.36.84-2.23 2.14-2.23 3.76 0 1.72 1.02 3.1 2.5 3.7-.27.76-.62 1.5-1.05 2.2-.44.7-.88 1.4-1.44 2.04zM15.93 4.26c.8-.97 1.28-2.3 1.08-3.66-1.07.08-2.28.68-3.05 1.62-.73.9-1.2 2.14-1.1 3.41 1.14.09 2.31-.6 3.07-1.37z"/></svg>
+                    Apple
+                </button>
+                <button id="twitter-login" class="social-btn" style="background: #1DA1F2; color: white; border: none; padding: 0.6rem 1rem; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.52 8.52 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06 1.9 1.22 4.16 1.93 6.58 1.93 7.9 0 12.23-6.55 12.23-12.23 0-.19 0-.38-.01-.56.84-.6 1.56-1.36 2.14-2.23z"/></svg>
+                    X (Twitter)
+                </button>
+            </div>
 
             <div style="text-align: center; margin-top: 1.5rem; font-size: 0.78rem; color: var(--text-light);">
                 Don't have an account? <a href="signup.html" style="color: var(--primary); text-decoration: none; border-bottom: 1px solid rgba(139,115,85,0.3);">Sign up here</a>
@@ -80,13 +107,13 @@
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script>
+        // Email/Password login
         document.getElementById('login-btn').addEventListener('click', async function() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const msgDiv = document.getElementById('message');
 
             const result = await authManager.signIn(email, password);
-
             if (result.success) {
                 msgDiv.style.color = '#7A9B76';
                 msgDiv.textContent = 'Login successful! Redirecting...';
@@ -97,7 +124,13 @@
             }
         });
 
-        // Allow Enter key
+        // Social login handlers
+        document.getElementById('google-login').addEventListener('click', () => authManager.signInWithProvider('google'));
+        document.getElementById('facebook-login').addEventListener('click', () => authManager.signInWithProvider('facebook'));
+        document.getElementById('apple-login').addEventListener('click', () => authManager.signInWithProvider('apple'));
+        document.getElementById('twitter-login').addEventListener('click', () => authManager.signInWithProvider('twitter'));
+
+        // Enter key on password field
         document.getElementById('password').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') document.getElementById('login-btn').click();
         });

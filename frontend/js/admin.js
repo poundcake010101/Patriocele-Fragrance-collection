@@ -1,333 +1,22 @@
+// ========== HELPERS ==========
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function fmt(amount) {
+    return `R${parseFloat(amount || 0).toFixed(2)}`;
+}
+
+// ========== ADMIN MANAGER ==========
 class AdminManager {
     constructor() {
         this.currentUser = null;
         this.products = [];
         this.orders = [];
         this.users = [];
-        this.currency = 'ZAR';
-        this.charts = {}; // store Chart.js instances
+        this.charts = {};
         this.init();
-    }
-
-    // ========== ENHANCED ANALYTICS ==========
-    async loadAnalytics() {
-        await this.loadChartLibs();
-        const container = document.getElementById('sales-chart');
-        container.innerHTML = '';
-        await this.buildAnalyticsDashboard();
-    }
-
-    async loadChartLibs() {
-        if (typeof Chart === 'undefined') {
-            await new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
-        }
-        if (typeof XLSX === 'undefined') {
-            await new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js';
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
-        }
-    }
-
-    async buildAnalyticsDashboard() {
-        const container = document.getElementById('sales-chart');
-        const kpis = await this.getDescriptiveKPIs();
-        const salesData = await this.getSalesTimeSeries();
-        const orderStatusData = await this.getOrderStatusDistribution();
-        const topProductsData = await this.getTopProductsData();
-        const forecast = this.calculateForecast(salesData);
-
-        const dashboardHtml = `
-            <div class="analytics-full-dashboard">
-                ${this.renderKPIcards(kpis)}
-                <div class="analytics-row" style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin: 1.5rem 0;">
-                    <div class="analytics-card" style="flex: 2; min-width: 300px;">
-                        <h3>Sales Trend (Last 30 Days)</h3>
-                        <canvas id="salesTrendChart" width="400" height="200"></canvas>
-                    </div>
-                    <div class="analytics-card" style="flex: 1; min-width: 250px;">
-                        <h3>Order Status (Diagnostic)</h3>
-                        <canvas id="orderStatusChart" width="200" height="200"></canvas>
-                    </div>
-                </div>
-                <div class="analytics-row" style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin: 1.5rem 0;">
-                    <div class="analytics-card" style="flex: 2;">
-                        <h3>Top 5 Products by Quantity</h3>
-                        <canvas id="topProductsChart" width="400" height="200"></canvas>
-                    </div>
-                    <div class="analytics-card" style="flex: 1;">
-                        <h3>Predictive: Next 7 Days Sales Forecast</h3>
-                        <canvas id="forecastChart" width="200" height="200"></canvas>
-                        <div id="forecastInsight" style="font-size: 0.85rem; margin-top: 0.5rem;"></div>
-                    </div>
-                </div>
-                <div class="analytics-row">
-                    <div class="analytics-card">
-                        <h3>Prescriptive Insights</h3>
-                        <div id="prescriptiveInsights"></div>
-                    </div>
-                </div>
-                <div style="margin-top: 1rem; text-align: right;">
-                    <button id="exportExcelBtn" class="btn-primary" style="background: #2c5e2e;">📊 Download Excel Report</button>
-                </div>
-            </div>
-        `;
-        container.innerHTML = dashboardHtml;
-
-        this.renderSalesTrendChart(salesData);
-        this.renderOrderStatusChart(orderStatusData);
-        this.renderTopProductsChart(topProductsData);
-        this.renderForecastChart(forecast, salesData);
-        await this.renderPrescriptiveInsights(salesData, topProductsData, orderStatusData);
-
-        document.getElementById('exportExcelBtn')?.addEventListener('click', () => this.exportToExcel());
-    }
-
-    async getDescriptiveKPIs() {
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-        const { data: paidOrders } = await window.supabase
-            .from('orders')
-            .select('total_amount, created_at')
-            .eq('payment_status', 'paid')
-            .gte('created_at', thirtyDaysAgo);
-        const totalRevenue = paidOrders?.reduce((s, o) => s + parseFloat(o.total_amount), 0) || 0;
-        const orderCount = paidOrders?.length || 0;
-        const avgOrderValue = orderCount ? totalRevenue / orderCount : 0;
-        const { count: totalProducts } = await window.supabase.from('products').select('*', { count: 'exact', head: true });
-        const { count: totalOrdersAll } = await window.supabase.from('orders').select('*', { count: 'exact', head: true });
-        return { totalRevenue, orderCount, avgOrderValue, totalProducts, totalOrdersAll };
-    }
-
-    renderKPIcards(kpis) {
-        return `
-            <div class="kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-                <div class="kpi-card" style="background:#f9f5f0; padding:1rem; border-radius:8px;">
-                    <div style="font-size:0.8rem;">30‑Day Revenue</div>
-                    <div style="font-size:1.8rem; font-weight:bold;">R${kpis.totalRevenue.toFixed(2)}</div>
-                </div>
-                <div class="kpi-card" style="background:#f9f5f0; padding:1rem; border-radius:8px;">
-                    <div style="font-size:0.8rem;">Paid Orders (30d)</div>
-                    <div style="font-size:1.8rem; font-weight:bold;">${kpis.orderCount}</div>
-                </div>
-                <div class="kpi-card" style="background:#f9f5f0; padding:1rem; border-radius:8px;">
-                    <div style="font-size:0.8rem;">Average Order Value</div>
-                    <div style="font-size:1.8rem; font-weight:bold;">R${kpis.avgOrderValue.toFixed(2)}</div>
-                </div>
-                <div class="kpi-card" style="background:#f9f5f0; padding:1rem; border-radius:8px;">
-                    <div style="font-size:0.8rem;">Total Products</div>
-                    <div style="font-size:1.8rem; font-weight:bold;">${kpis.totalProducts}</div>
-                </div>
-                <div class="kpi-card" style="background:#f9f5f0; padding:1rem; border-radius:8px;">
-                    <div style="font-size:0.8rem;">All Time Orders</div>
-                    <div style="font-size:1.8rem; font-weight:bold;">${kpis.totalOrdersAll}</div>
-                </div>
-            </div>
-        `;
-    }
-
-    async getSalesTimeSeries() {
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-        const { data } = await window.supabase
-            .from('orders')
-            .select('created_at, total_amount')
-            .eq('payment_status', 'paid')
-            .gte('created_at', thirtyDaysAgo)
-            .order('created_at', { ascending: true });
-        if (!data) return { dates: [], amounts: [] };
-        const daily = {};
-        data.forEach(order => {
-            const date = new Date(order.created_at).toISOString().split('T')[0];
-            daily[date] = (daily[date] || 0) + parseFloat(order.total_amount);
-        });
-        const dates = Object.keys(daily).sort();
-        const amounts = dates.map(d => daily[d]);
-        return { dates, amounts };
-    }
-
-    renderSalesTrendChart(salesData) {
-        const ctx = document.getElementById('salesTrendChart')?.getContext('2d');
-        if (!ctx) return;
-        if (this.charts.salesTrend) this.charts.salesTrend.destroy();
-        this.charts.salesTrend = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: salesData.dates.map(d => d.slice(5)),
-                datasets: [{
-                    label: 'Daily Sales (R)',
-                    data: salesData.amounts,
-                    borderColor: '#c5a059',
-                    backgroundColor: 'rgba(197,160,89,0.1)',
-                    tension: 0.3,
-                    fill: true
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: true }
-        });
-    }
-
-    async getOrderStatusDistribution() {
-        const { data } = await window.supabase.from('orders').select('status');
-        if (!data) return {};
-        const counts = {};
-        data.forEach(order => { counts[order.status] = (counts[order.status] || 0) + 1; });
-        return counts;
-    }
-
-    renderOrderStatusChart(statusData) {
-        const ctx = document.getElementById('orderStatusChart')?.getContext('2d');
-        if (!ctx) return;
-        if (this.charts.orderStatus) this.charts.orderStatus.destroy();
-        this.charts.orderStatus = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: Object.keys(statusData),
-                datasets: [{
-                    data: Object.values(statusData),
-                    backgroundColor: ['#c5a059', '#4a6fa5', '#6c757d', '#28a745', '#dc3545']
-                }]
-            },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-        });
-    }
-
-    async getTopProductsData() {
-        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-        const { data } = await window.supabase
-            .from('order_items')
-            .select(`quantity, products(name)`)
-            .gte('created_at', ninetyDaysAgo);
-        if (!data) return { names: [], quantities: [] };
-        const productQty = {};
-        data.forEach(item => {
-            const name = item.products?.name;
-            if (name) productQty[name] = (productQty[name] || 0) + item.quantity;
-        });
-        const sorted = Object.entries(productQty).sort((a,b) => b[1] - a[1]).slice(0,5);
-        return { names: sorted.map(p => p[0]), quantities: sorted.map(p => p[1]) };
-    }
-
-    renderTopProductsChart(productsData) {
-        const ctx = document.getElementById('topProductsChart')?.getContext('2d');
-        if (!ctx) return;
-        if (this.charts.topProducts) this.charts.topProducts.destroy();
-        this.charts.topProducts = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: productsData.names,
-                datasets: [{
-                    label: 'Units Sold (last 90 days)',
-                    data: productsData.quantities,
-                    backgroundColor: '#c5a059'
-                }]
-            },
-            options: { responsive: true, indexAxis: 'y' }
-        });
-    }
-
-    calculateForecast(salesData) {
-        const amounts = salesData.amounts;
-        if (amounts.length < 7) return { forecastDays: [1,2,3,4,5,6,7], forecastValues: Array(7).fill(0) };
-        const recent = amounts.slice(-14);
-        const x = Array.from({ length: recent.length }, (_, i) => i);
-        const n = recent.length;
-        const sumX = x.reduce((a,b) => a+b, 0);
-        const sumY = recent.reduce((a,b) => a+b, 0);
-        const sumXY = x.reduce((a,b,i) => a + b * recent[i], 0);
-        const sumX2 = x.reduce((a,b) => a + b*b, 0);
-        const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-        const intercept = (sumY - slope * sumX) / n;
-        const forecastDays = [1,2,3,4,5,6,7];
-        const forecastValues = forecastDays.map(day => Math.max(0, intercept + slope * (recent.length + day)));
-        return { forecastDays, forecastValues };
-    }
-
-    renderForecastChart(forecast, salesData) {
-        const ctx = document.getElementById('forecastChart')?.getContext('2d');
-        if (!ctx) return;
-        if (this.charts.forecast) this.charts.forecast.destroy();
-        this.charts.forecast = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: forecast.forecastDays.map(d => `Day ${d}`),
-                datasets: [{
-                    label: 'Forecasted Sales (R)',
-                    data: forecast.forecastValues,
-                    borderColor: '#2c5e2e',
-                    borderDash: [5,5],
-                    tension: 0.1
-                }]
-            },
-            options: { responsive: true, plugins: { tooltip: { callbacks: { label: (ctx) => `R${ctx.raw.toFixed(2)}` } } } }
-        });
-        const totalForecast = forecast.forecastValues.reduce((a,b)=>a+b,0);
-        const insightDiv = document.getElementById('forecastInsight');
-        if (insightDiv) insightDiv.innerHTML = `📈 Expected next 7‑day revenue: <strong>R${totalForecast.toFixed(2)}</strong><br>Based on linear trend of last 14 days.`;
-    }
-
-    async renderPrescriptiveInsights(salesData, topProductsData, orderStatusData) {
-        const { data: lowStock } = await window.supabase.from('products').select('name, stock_quantity').lt('stock_quantity', 10).eq('is_active', true);
-        const lowStockHtml = lowStock?.length ? `<li>Restock soon: ${lowStock.map(p => `${p.name} (${p.stock_quantity} left)`).join(', ')}</li>` : '<li>All stock levels healthy</li>';
-        const totalOrders = Object.values(orderStatusData).reduce((a,b)=>a+b,0);
-        const cancelled = orderStatusData.cancelled || 0;
-        const cancelRate = totalOrders ? (cancelled/totalOrders*100).toFixed(1) : 0;
-        const cancelAdvice = cancelRate > 10 ? `<li>⚠️ High cancellation rate (${cancelRate}%). Review payment or fulfilment process.</li>` : '';
-        const topProduct = topProductsData.names[0];
-        const promoAdvice = topProduct ? `<li>✨ Promote "${topProduct}" – it's your best seller.</li>` : '';
-        const peakDay = this.getPeakDay(salesData);
-        const prescHtml = `
-            <ul style="margin:0; padding-left:1.2rem;">
-                ${lowStockHtml}
-                ${cancelAdvice}
-                ${promoAdvice}
-                <li>📅 Run a weekend campaign – sales peak on ${peakDay}.</li>
-            </ul>
-        `;
-        const insightDiv = document.getElementById('prescriptiveInsights');
-        if (insightDiv) insightDiv.innerHTML = prescHtml;
-    }
-
-    getPeakDay(salesData) {
-        if (!salesData.dates.length) return 'Friday';
-        const daySums = {};
-        salesData.dates.forEach((date, i) => {
-            const day = new Date(date).toLocaleDateString('en', { weekday: 'long' });
-            daySums[day] = (daySums[day] || 0) + salesData.amounts[i];
-        });
-        const sorted = Object.entries(daySums).sort((a,b)=>b[1]-a[1]);
-        return sorted[0]?.[0] || 'weekend';
-    }
-
-    async exportToExcel() {
-        const { data: orders } = await window.supabase.from('orders').select('*');
-        const { data: products } = await window.supabase.from('products').select('*');
-        const { data: users } = await window.supabase.from('users').select('*');
-        const wb = XLSX.utils.book_new();
-        const ordersSheet = XLSX.utils.json_to_sheet(orders || []);
-        XLSX.utils.book_append_sheet(wb, ordersSheet, 'Orders');
-        const productsSheet = XLSX.utils.json_to_sheet(products || []);
-        XLSX.utils.book_append_sheet(wb, productsSheet, 'Products');
-        const usersSheet = XLSX.utils.json_to_sheet(users || []);
-        XLSX.utils.book_append_sheet(wb, usersSheet, 'Users');
-        const kpis = await this.getDescriptiveKPIs();
-        const summaryData = [
-            { Metric: '30-Day Revenue', Value: `R${kpis.totalRevenue.toFixed(2)}` },
-            { Metric: 'Paid Orders (30d)', Value: kpis.orderCount },
-            { Metric: 'Average Order Value', Value: `R${kpis.avgOrderValue.toFixed(2)}` },
-            { Metric: 'Total Products', Value: kpis.totalProducts },
-            { Metric: 'All Time Orders', Value: kpis.totalOrdersAll }
-        ];
-        const summarySheet = XLSX.utils.json_to_sheet(summaryData);
-        XLSX.utils.book_append_sheet(wb, summarySheet, 'Analytics_Summary');
-        XLSX.writeFile(wb, `patriocele_analytics_${new Date().toISOString().slice(0,19)}.xlsx`);
     }
 
     // ========== INIT & AUTH ==========
@@ -338,210 +27,241 @@ class AdminManager {
             return;
         }
         this.currentUser = window.authManager.getCurrentUser();
+
         const { data: userData, error } = await window.supabase
             .from('users')
             .select('is_admin')
             .eq('id', this.currentUser.id)
             .single();
+
         if (error || !userData?.is_admin) {
             alert('Access denied. Admin privileges required.');
             window.location.href = 'index.html';
             return;
         }
+
         this.setupEventListeners();
         this.loadDashboardData();
     }
 
     setupEventListeners() {
+        // Tab switching
         document.querySelectorAll('.admin-tab').forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                const tabName = e.target.dataset.tab;
-                this.switchTab(tabName);
-            });
+            tab.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
         });
-        const addBtn = document.getElementById('add-product-btn');
-        if (addBtn) addBtn.addEventListener('click', () => this.openProductModal());
+
+        // Add product button
+        document.getElementById('add-product-btn')?.addEventListener('click', () => this.openProductModal());
+
+        // Close modals
         document.querySelectorAll('.close-modal').forEach(btn => {
-            btn.addEventListener('click', () => this.closeModal());
+            btn.addEventListener('click', () => this.closeAllModals());
         });
-        const productForm = document.getElementById('product-form');
-        if (productForm) productForm.addEventListener('submit', (e) => {
+
+        // Close modal on backdrop click
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) this.closeAllModals();
+        });
+
+        // Product form submit
+        document.getElementById('product-form')?.addEventListener('submit', (e) => {
             e.preventDefault();
             this.saveProduct();
         });
-        const productSearch = document.getElementById('product-search');
-        if (productSearch) productSearch.addEventListener('input', (e) => this.filterProducts(e.target.value));
-        const orderStatusFilter = document.getElementById('order-status-filter');
-        if (orderStatusFilter) orderStatusFilter.addEventListener('change', (e) => this.filterOrders(e.target.value));
-        const productStatusFilter = document.getElementById('product-status');
-        if (productStatusFilter) productStatusFilter.addEventListener('change', () => this.loadProducts());
-        const dateFrom = document.getElementById('order-date-from');
-        const dateTo = document.getElementById('order-date-to');
-        if (dateFrom && dateTo) {
-            dateFrom.addEventListener('change', () => this.filterOrdersByDate());
-            dateTo.addEventListener('change', () => this.filterOrdersByDate());
-        }
+
+        // Product filters
+        document.getElementById('product-search')?.addEventListener('input', (e) => this.filterProducts(e.target.value));
+        document.getElementById('product-status')?.addEventListener('change', () => this.loadProducts());
+
+        // Order filters
+        document.getElementById('order-status-filter')?.addEventListener('change', (e) => this.filterOrders(e.target.value));
+        document.getElementById('order-date-from')?.addEventListener('change', () => this.filterOrdersByDate());
+        document.getElementById('order-date-to')?.addEventListener('change', () => this.filterOrdersByDate());
     }
 
     switchTab(tabName) {
-        document.querySelectorAll('.admin-tab').forEach(tab => tab.classList.remove('active'));
-        document.querySelectorAll('.admin-tab-content').forEach(content => content.classList.remove('active'));
-        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-        document.getElementById(`${tabName}-tab`).classList.add('active');
-        switch(tabName) {
-            case 'products': this.loadProducts(); break;
-            case 'orders': this.loadOrders(); break;
-            case 'users': this.loadUsers(); break;
+        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelector(`[data-tab="${tabName}"]`)?.classList.add('active');
+        document.getElementById(`${tabName}-tab`)?.classList.add('active');
+
+        switch (tabName) {
+            case 'dashboard': this.loadDashboardData(); break;
+            case 'products':  this.loadProducts(); break;
+            case 'orders':    this.loadOrders(); break;
+            case 'users':     this.loadUsers(); break;
             case 'analytics': this.loadAnalytics(); break;
         }
+    }
+
+    closeAllModals() {
+        document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
     }
 
     // ========== DASHBOARD ==========
     async loadDashboardData() {
         try {
-            const [productsCount, ordersCount, usersCount, revenueData] = await Promise.all([
-                this.getProductsCount(), this.getOrdersCount(), this.getUsersCount(), this.getRevenueData()
-            ]);
-            document.getElementById('total-products').textContent = productsCount;
-            document.getElementById('total-orders').textContent = ordersCount;
-            document.getElementById('total-users').textContent = usersCount;
-            document.getElementById('total-revenue').textContent = `R${revenueData.total.toFixed(2)}`;
+            // Revenue — sum all paid orders
+            const { data: paidOrders, error: revErr } = await window.supabase
+                .from('orders')
+                .select('total_amount')
+                .eq('payment_status', 'paid');
+
+            if (!revErr && paidOrders) {
+                const total = paidOrders.reduce((s, o) => s + parseFloat(o.total_amount || 0), 0);
+                document.getElementById('total-revenue').textContent = fmt(total);
+            }
+
+            // Orders count
+            const { count: orderCount } = await window.supabase
+                .from('orders')
+                .select('*', { count: 'exact', head: true });
+            document.getElementById('total-orders').textContent = orderCount ?? 0;
+
+            // Products count (active)
+            const { count: productCount } = await window.supabase
+                .from('products')
+                .select('*', { count: 'exact', head: true })
+                .eq('is_active', true);
+            document.getElementById('total-products').textContent = productCount ?? 0;
+
+            // Users count
+            const { count: userCount } = await window.supabase
+                .from('users')
+                .select('*', { count: 'exact', head: true });
+            document.getElementById('total-users').textContent = userCount ?? 0;
+
             await this.loadRecentOrders();
             await this.loadLowStockProducts();
-        } catch (error) {
-            console.error('Error loading dashboard data:', error);
+        } catch (err) {
+            console.error('Dashboard load error:', err);
         }
-    }
-
-    async getProductsCount() {
-        const { count, error } = await window.supabase.from('products').select('*', { count: 'exact', head: true }).eq('is_active', true);
-        return error ? 0 : count;
-    }
-    async getOrdersCount() {
-        const { count, error } = await window.supabase.from('orders').select('*', { count: 'exact', head: true });
-        return error ? 0 : count;
-    }
-    async getUsersCount() {
-        const { count, error } = await window.supabase.from('users').select('*', { count: 'exact', head: true });
-        return error ? 0 : count;
-    }
-    async getRevenueData() {
-        const { data, error } = await window.supabase.from('orders').select('total_amount').eq('payment_status', 'paid');
-        if (error) return { total: 0 };
-        const total = data.reduce((sum, order) => sum + parseFloat(order.total_amount), 0);
-        return { total };
     }
 
     async loadRecentOrders() {
-        const { data, error } = await window.supabase.from('orders').select(`*, users ( email, full_name )`).order('created_at', { ascending: false }).limit(5);
-        if (error) { console.error(error); return; }
+        const { data, error } = await window.supabase
+            .from('orders')
+            .select('id, status, total_amount, created_at, users(email, full_name)')
+            .order('created_at', { ascending: false })
+            .limit(5);
+
         const container = document.getElementById('recent-orders');
-        if (!data.length) { container.innerHTML = '<p>No recent orders</p>'; return; }
-        let html = '';
-        data.forEach(order => {
-            html += `<div class="recent-order" style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
-                <div><strong>Order #${order.id}</strong><span style="display: block; font-size: 0.85rem;">${order.users?.full_name || order.users?.email}</span></div>
-                <div style="text-align: right;"><span class="status-badge status-${order.status}">${order.status}</span><span style="display: block;">R${order.total_amount}</span></div>
-            </div>`;
-        });
-        container.innerHTML = html;
+        if (error || !data?.length) {
+            container.innerHTML = '<p style="color:var(--text-light);font-size:0.85rem;">No recent orders.</p>';
+            return;
+        }
+
+        container.innerHTML = data.map(order => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.65rem 0;border-bottom:1px solid var(--border);">
+                <div>
+                    <span style="font-size:0.88rem;font-weight:500;">Order #${order.id}</span>
+                    <span style="display:block;font-size:0.75rem;color:var(--text-light);">${order.users?.full_name || order.users?.email || 'Customer'}</span>
+                </div>
+                <div style="text-align:right;">
+                    <span class="status-badge status-${order.status}">${order.status}</span>
+                    <span style="display:block;font-size:0.85rem;margin-top:0.25rem;">${fmt(order.total_amount)}</span>
+                </div>
+            </div>`).join('');
     }
 
     async loadLowStockProducts() {
-        const { data, error } = await window.supabase.from('products').select('*').lt('stock_quantity', 10).eq('is_active', true).order('stock_quantity', { ascending: true }).limit(5);
-        if (error) { console.error(error); return; }
+        const { data, error } = await window.supabase
+            .from('products')
+            .select('name, stock_quantity')
+            .eq('is_active', true)
+            .lt('stock_quantity', 10)
+            .order('stock_quantity', { ascending: true })
+            .limit(6);
+
         const container = document.getElementById('low-stock');
-        if (!data.length) { container.innerHTML = '<p>All products have sufficient stock</p>'; return; }
-        let html = '';
-        data.forEach(product => {
-            html += `<div style="display: flex; justify-content: space-between; padding: 0.5rem 0;"><span>${escapeHtml(product.name)}</span><span style="color: #e74c3c;">${product.stock_quantity} left</span></div>`;
-        });
-        container.innerHTML = html;
-    }
-
-    // ========== PRODUCTS (with fixed editing) ==========
-    async loadProducts() {
-        let query = window.supabase.from('products').select('*').order('created_at', { ascending: false });
-        const statusFilter = document.getElementById('product-status')?.value;
-        if (statusFilter === 'active') query = query.eq('is_active', true);
-        else if (statusFilter === 'inactive') query = query.eq('is_active', false);
-        const { data, error } = await query;
-        if (error) { console.error('Error loading products:', error); return; }
-        this.products = data || [];
-        this.renderProducts();
-    }
-
-    renderProducts() {
-        const tbody = document.getElementById('products-table-body');
-        if (!this.products.length) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No products found</td></tr>';
+        if (error || !data?.length) {
+            container.innerHTML = '<p style="color:var(--accent-green);font-size:0.85rem;">All stock levels healthy.</p>';
             return;
         }
-        let html = '';
-        this.products.forEach(product => {
-            html += `
-                <tr>
-                    <td>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <img src="${product.images?.[0] || 'https://via.placeholder.com/40x40?text=P'}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
-                            <div><strong>${escapeHtml(product.name)}</strong><div style="font-size: 0.8rem;">${escapeHtml(product.description?.substring(0, 50) || '')}...</div></div>
+
+        container.innerHTML = data.map(p => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.6rem 0;border-bottom:1px solid var(--border);">
+                <span style="font-size:0.88rem;">${escapeHtml(p.name)}</span>
+                <span style="color:#c44;font-weight:500;font-size:0.85rem;">${p.stock_quantity} left</span>
+            </div>`).join('');
+    }
+
+    // ========== PRODUCTS ==========
+    async loadProducts() {
+        let query = window.supabase
+            .from('products')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        const statusFilter = document.getElementById('product-status')?.value;
+        if (statusFilter === 'active')   query = query.eq('is_active', true);
+        if (statusFilter === 'inactive') query = query.eq('is_active', false);
+
+        const { data, error } = await query;
+        if (error) { console.error('Load products error:', error); return; }
+        this.products = data || [];
+        this.renderProductsTable(this.products);
+    }
+
+    renderProductsTable(products) {
+        const tbody = document.getElementById('products-table-body');
+        if (!products.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-light);">No products found.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = products.map(p => `
+            <tr>
+                <td>
+                    <div style="display:flex;gap:0.75rem;align-items:center;">
+                        <img src="${p.images?.[0] || 'https://via.placeholder.com/40?text=P'}" style="width:40px;height:40px;object-fit:cover;border-radius:2px;border:1px solid var(--border);">
+                        <div>
+                            <span style="font-weight:500;font-size:0.9rem;">${escapeHtml(p.name)}</span>
+                            <span style="display:block;font-size:0.75rem;color:var(--text-light);">${escapeHtml((p.description || '').substring(0, 50))}${p.description?.length > 50 ? '…' : ''}</span>
                         </div>
-                    </td>
-                    <td>R${product.price}</td>
-                    <td><span class="${product.stock_quantity < 10 ? 'stock-warning' : ''}">${product.stock_quantity}</span></td>
-                    <td><span class="status-badge ${product.is_active ? 'status-confirmed' : 'status-cancelled'}">${product.is_active ? 'Active' : 'Inactive'}</span></td>
-                    <td>
-                        <button class="btn-outline btn-sm" data-product-id="${product.id}" data-action="edit">Edit</button>
-                        <button class="btn-outline btn-sm btn-danger" data-product-id="${product.id}" data-action="toggle">${product.is_active ? 'Deactivate' : 'Activate'}</button>
-                    </td>
-                </tr>
-            `;
+                    </div>
+                </td>
+                <td style="font-size:0.9rem;">${fmt(p.price)}</td>
+                <td>
+                    <span style="font-weight:500;${p.stock_quantity < 10 ? 'color:#c44;' : ''}">${p.stock_quantity}</span>
+                    ${p.stock_quantity < 10 ? '<span style="font-size:0.65rem;color:#c44;display:block;">Low stock</span>' : ''}
+                </td>
+                <td><span class="status-badge ${p.is_active ? 'status-confirmed' : 'status-cancelled'}">${p.is_active ? 'Active' : 'Inactive'}</span></td>
+                <td style="white-space:nowrap;">
+                    <button class="btn-outline btn-sm" data-id="${p.id}" data-action="edit" style="margin-right:0.4rem;">Edit</button>
+                    <button class="btn-outline btn-sm btn-danger" data-id="${p.id}" data-active="${p.is_active}" data-action="toggle">${p.is_active ? 'Deactivate' : 'Activate'}</button>
+                </td>
+            </tr>`).join('');
+
+        // Bind edit buttons
+        tbody.querySelectorAll('[data-action="edit"]').forEach(btn => {
+            btn.addEventListener('click', () => this.editProduct(Number(btn.dataset.id)));
         });
-        tbody.innerHTML = html;
-        tbody.querySelectorAll('button[data-action="edit"]').forEach(btn => {
-            btn.addEventListener('click', () => this.editProduct(parseInt(btn.dataset.productId)));
-        });
-        tbody.querySelectorAll('button[data-action="toggle"]').forEach(btn => {
+
+        // Bind toggle buttons
+        tbody.querySelectorAll('[data-action="toggle"]').forEach(btn => {
             btn.addEventListener('click', () => {
-                const pid = parseInt(btn.dataset.productId);
-                const prod = this.products.find(p => p.id === pid);
-                if (prod) this.toggleProductStatus(pid, !prod.is_active);
+                const newStatus = btn.dataset.active === 'true' ? false : true;
+                this.toggleProductStatus(Number(btn.dataset.id), newStatus);
             });
         });
     }
 
-    filterProducts(searchTerm) {
-        const filtered = this.products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) || (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase())));
-        this.renderFilteredProducts(filtered);
-    }
-
-    renderFilteredProducts(filtered) {
-        const tbody = document.getElementById('products-table-body');
-        if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="5">No products found</td></tr>'; return; }
-        let html = '';
-        filtered.forEach(product => {
-            html += `<tr>
-                <td><div><img src="${product.images?.[0] || 'https://via.placeholder.com/40x40?text=P'}" style="width:40px;height:40px;"><strong>${escapeHtml(product.name)}</strong></div></td>
-                <td>R${product.price}</td>
-                <td>${product.stock_quantity}</td>
-                <td><span class="status-badge ${product.is_active ? 'status-confirmed' : 'status-cancelled'}">${product.is_active ? 'Active' : 'Inactive'}</span></td>
-                <td><button class="btn-outline btn-sm" data-product-id="${product.id}" data-action="edit">Edit</button> <button class="btn-outline btn-sm btn-danger" data-product-id="${product.id}" data-action="toggle">${product.is_active ? 'Deactivate' : 'Activate'}</button></td>
-            </tr>`;
-        });
-        tbody.innerHTML = html;
-        tbody.querySelectorAll('button[data-action="edit"]').forEach(btn => btn.addEventListener('click', () => this.editProduct(parseInt(btn.dataset.productId))));
-        tbody.querySelectorAll('button[data-action="toggle"]').forEach(btn => btn.addEventListener('click', () => {
-            const pid = parseInt(btn.dataset.productId);
-            const prod = this.products.find(p => p.id === pid);
-            if (prod) this.toggleProductStatus(pid, !prod.is_active);
-        }));
+    filterProducts(term) {
+        const t = term.toLowerCase();
+        const filtered = this.products.filter(p =>
+            p.name.toLowerCase().includes(t) ||
+            (p.description || '').toLowerCase().includes(t)
+        );
+        this.renderProductsTable(filtered);
     }
 
     async editProduct(productId) {
+        // Try local cache first, fallback to DB
         let product = this.products.find(p => p.id === productId);
         if (!product) {
             const { data, error } = await window.supabase.from('products').select('*').eq('id', productId).single();
-            if (error || !data) { alert('Product not found'); return; }
+            if (error || !data) { alert('Product not found.'); return; }
             product = data;
         }
         this.openProductModal(product);
@@ -549,202 +269,606 @@ class AdminManager {
 
     openProductModal(product = null) {
         const modal = document.getElementById('product-modal');
-        const title = document.getElementById('product-modal-title');
+        document.getElementById('product-modal-title').textContent = product ? 'Edit Product' : 'Add New Product';
+
         if (product) {
-            title.textContent = 'Edit Product';
-            this.fillProductForm(product);
+            document.getElementById('product-id').value = product.id;
+            document.getElementById('product-name').value = product.name || '';
+            document.getElementById('product-price').value = product.price || '';
+            document.getElementById('product-description').value = product.description || '';
+            document.getElementById('product-stock').value = product.stock_quantity || 0;
+            document.getElementById('product-intensity').value = product.intensity || 'EDP';
+            document.getElementById('product-occasion').value = (product.occasion || []).join(', ');
+            document.getElementById('product-images').value = (product.images || []).join('\n');
+            document.getElementById('product-active').checked = product.is_active !== false;
         } else {
-            title.textContent = 'Add New Product';
-            this.clearProductForm();
+            document.getElementById('product-form').reset();
+            document.getElementById('product-id').value = '';
+            document.getElementById('product-active').checked = true;
         }
+
         modal.style.display = 'block';
     }
 
-    closeModal() {
-        document.getElementById('product-modal').style.display = 'none';
-    }
-
-    fillProductForm(product) {
-        document.getElementById('product-id').value = product.id;
-        document.getElementById('product-name').value = product.name;
-        document.getElementById('product-price').value = product.price;
-        document.getElementById('product-description').value = product.description || '';
-        document.getElementById('product-stock').value = product.stock_quantity;
-        document.getElementById('product-intensity').value = product.intensity || 'EDP';
-        document.getElementById('product-occasion').value = product.occasion?.join(', ') || '';
-        document.getElementById('product-images').value = product.images?.join('\n') || '';
-        document.getElementById('product-active').checked = product.is_active;
-    }
-
-    clearProductForm() {
-        document.getElementById('product-form').reset();
-        document.getElementById('product-id').value = '';
-    }
-
     async saveProduct() {
-        const formData = new FormData(document.getElementById('product-form'));
-        const productId = formData.get('product-id');
+        const productId = document.getElementById('product-id').value;
+
         const productData = {
-            name: formData.get('product-name'),
-            description: formData.get('product-description'),
-            price: parseFloat(formData.get('product-price')),
-            stock_quantity: parseInt(formData.get('product-stock')),
-            intensity: formData.get('product-intensity'),
-            occasion: formData.get('product-occasion').split(',').map(s => s.trim()).filter(s => s),
-            images: formData.get('product-images').split('\n').map(s => s.trim()).filter(s => s),
-            is_active: document.getElementById('product-active').checked
+            name:           document.getElementById('product-name').value.trim(),
+            description:    document.getElementById('product-description').value.trim(),
+            price:          parseFloat(document.getElementById('product-price').value),
+            stock_quantity: parseInt(document.getElementById('product-stock').value, 10),
+            intensity:      document.getElementById('product-intensity').value,
+            occasion:       document.getElementById('product-occasion').value.split(',').map(s => s.trim()).filter(Boolean),
+            images:         document.getElementById('product-images').value.split('\n').map(s => s.trim()).filter(Boolean),
+            is_active:      document.getElementById('product-active').checked,
         };
+
+        if (!productData.name) { alert('Product name is required.'); return; }
+        if (isNaN(productData.price)) { alert('Enter a valid price.'); return; }
+
         try {
-            let result;
+            let error;
             if (productId) {
-                result = await window.supabase.from('products').update(productData).eq('id', productId);
+                ({ error } = await window.supabase.from('products').update(productData).eq('id', productId));
             } else {
-                result = await window.supabase.from('products').insert([productData]);
+                ({ error } = await window.supabase.from('products').insert([productData]));
             }
-            if (result.error) throw result.error;
-            this.closeModal();
-            this.loadProducts();
-            alert('Product saved successfully!');
-        } catch (error) {
-            console.error('Error saving product:', error);
-            alert('Error saving product: ' + error.message);
+            if (error) throw error;
+
+            this.closeAllModals();
+            await this.loadProducts();
+            // Refresh dashboard counts
+            const { count } = await window.supabase.from('products').select('*', { count: 'exact', head: true }).eq('is_active', true);
+            document.getElementById('total-products').textContent = count ?? 0;
+        } catch (err) {
+            console.error('Save product error:', err);
+            alert('Error saving product: ' + err.message);
         }
     }
 
     async toggleProductStatus(productId, newStatus) {
-        try {
-            const { error } = await window.supabase.from('products').update({ is_active: newStatus }).eq('id', productId);
-            if (error) throw error;
-            this.loadProducts();
-            alert(`Product ${newStatus ? 'activated' : 'deactivated'} successfully!`);
-        } catch (error) {
-            console.error('Error updating product status:', error);
-            alert('Error updating product status');
-        }
+        const { error } = await window.supabase.from('products').update({ is_active: newStatus }).eq('id', productId);
+        if (error) { alert('Error updating product: ' + error.message); return; }
+        await this.loadProducts();
+    }
+
+    // Stock adjustment helper (called if you add +/- controls later)
+    async adjustStock(productId, delta) {
+        const product = this.products.find(p => p.id === productId);
+        if (!product) return;
+        const newQty = Math.max(0, product.stock_quantity + delta);
+        const { error } = await window.supabase.from('products').update({ stock_quantity: newQty }).eq('id', productId);
+        if (error) { console.error(error); return; }
+        await this.loadProducts();
+        await this.loadLowStockProducts();
     }
 
     // ========== ORDERS ==========
     async loadOrders() {
-        const { data, error } = await window.supabase.from('orders').select(`*, users ( email, full_name ), order_items ( quantity, products ( name ) )`).order('created_at', { ascending: false });
+        const { data, error } = await window.supabase
+            .from('orders')
+            .select('id, status, total_amount, created_at, users(email, full_name), order_items(quantity, products(name))')
+            .order('created_at', { ascending: false });
+
         if (error) { console.error(error); return; }
         this.orders = data || [];
-        this.renderOrders();
+        this.renderOrdersTable(this.orders);
     }
 
-    renderOrders() {
+    renderOrdersTable(orders) {
         const tbody = document.getElementById('orders-table-body');
-        if (!this.orders.length) { tbody.innerHTML = '<tr><td colspan="6">No orders found</td></tr>'; return; }
-        let html = '';
-        this.orders.forEach(order => {
-            html += `<tr>
-                <td>#${order.id}</td>
-                <td><strong>${order.users?.full_name || 'Customer'}</strong><div style="font-size:0.8rem;">${order.users?.email}</div></td>
-                <td>${new Date(order.created_at).toLocaleDateString()}</td>
-                <td>R${order.total_amount}</td>
-                <td><select class="status-select" data-order-id="${order.id}" onchange="adminManager.updateOrderStatus(${order.id}, this.value)">
-                    ${['pending','confirmed','shipped','delivered','cancelled'].map(s => `<option value="${s}" ${order.status === s ? 'selected' : ''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
-                </select></td>
-                <td><button class="btn-outline btn-sm" onclick="adminManager.viewOrder(${order.id})">View</button></td>
-            </tr>`;
+        if (!orders.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-light);">No orders found.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = orders.map(o => `
+            <tr>
+                <td style="font-size:0.85rem;font-weight:500;">#${o.id}</td>
+                <td>
+                    <span style="font-size:0.9rem;">${escapeHtml(o.users?.full_name || 'Customer')}</span>
+                    <span style="display:block;font-size:0.75rem;color:var(--text-light);">${escapeHtml(o.users?.email || '')}</span>
+                </td>
+                <td style="font-size:0.85rem;">${new Date(o.created_at).toLocaleDateString('en-ZA')}</td>
+                <td style="font-size:0.9rem;font-weight:500;">${fmt(o.total_amount)}</td>
+                <td>
+                    <select class="status-select" data-order-id="${o.id}">
+                        ${['pending','confirmed','shipped','delivered','cancelled'].map(s =>
+                            `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`
+                        ).join('')}
+                    </select>
+                </td>
+                <td><button class="btn-outline btn-sm" data-order-id="${o.id}" data-action="view">View</button></td>
+            </tr>`).join('');
+
+        // Bind status selects
+        tbody.querySelectorAll('.status-select').forEach(sel => {
+            sel.addEventListener('change', () => this.updateOrderStatus(Number(sel.dataset.orderId), sel.value));
         });
-        tbody.innerHTML = html;
+
+        // Bind view buttons
+        tbody.querySelectorAll('[data-action="view"]').forEach(btn => {
+            btn.addEventListener('click', () => this.viewOrder(Number(btn.dataset.orderId)));
+        });
     }
 
     async updateOrderStatus(orderId, newStatus) {
-        try {
-            const { error } = await window.supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
-            if (error) throw error;
-            alert('Order status updated');
-            this.loadOrders();
-        } catch (error) { console.error(error); alert('Error updating order status'); }
+        const { error } = await window.supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+        if (error) { alert('Error updating status: ' + error.message); return; }
+        // Update local cache
+        const order = this.orders.find(o => o.id === orderId);
+        if (order) order.status = newStatus;
     }
 
     filterOrders(status) {
         const filtered = status ? this.orders.filter(o => o.status === status) : this.orders;
-        this.renderFilteredOrders(filtered);
+        this.renderOrdersTable(filtered);
     }
 
     filterOrdersByDate() {
         const from = document.getElementById('order-date-from')?.value;
-        const to = document.getElementById('order-date-to')?.value;
+        const to   = document.getElementById('order-date-to')?.value;
         let filtered = [...this.orders];
         if (from) filtered = filtered.filter(o => new Date(o.created_at) >= new Date(from));
-        if (to) { const end = new Date(to); end.setHours(23,59,59); filtered = filtered.filter(o => new Date(o.created_at) <= end); }
-        this.renderFilteredOrders(filtered);
+        if (to)   { const end = new Date(to); end.setHours(23,59,59,999); filtered = filtered.filter(o => new Date(o.created_at) <= end); }
+        this.renderOrdersTable(filtered);
     }
 
-    renderFilteredOrders(filtered) {
-        const tbody = document.getElementById('orders-table-body');
-        if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="6">No orders found</td></tr>'; return; }
-        let html = '';
-        filtered.forEach(order => {
-            html += `<tr>
-                <td>#${order.id}</td>
-                <td><strong>${order.users?.full_name || 'Customer'}</strong><div style="font-size:0.8rem;">${order.users?.email}</div></td>
-                <td>${new Date(order.created_at).toLocaleDateString()}</td>
-                <td>R${order.total_amount}</td>
-                <td><select onchange="adminManager.updateOrderStatus(${order.id}, this.value)">
-                    ${['pending','confirmed','shipped','delivered','cancelled'].map(s => `<option value="${s}" ${order.status === s ? 'selected' : ''}>${s}</option>`).join('')}
-                </select></td>
-                <td><button class="btn-outline btn-sm" onclick="adminManager.viewOrder(${order.id})">View</button></td>
-            </tr>`;
-        });
-        tbody.innerHTML = html;
+    viewOrder(orderId) {
+        const order = this.orders.find(o => o.id === orderId);
+        if (!order) return;
+        const items = (order.order_items || []).map(i => `${i.quantity}x ${i.products?.name || 'Item'}`).join(', ') || 'No items';
+        alert(`Order #${orderId}\nCustomer: ${order.users?.full_name || order.users?.email}\nStatus: ${order.status}\nTotal: ${fmt(order.total_amount)}\nItems: ${items}`);
     }
-
-    viewOrder(orderId) { alert(`View order #${orderId} – implement detailed view as needed`); }
 
     // ========== USERS ==========
     async loadUsers() {
-        const { data, error } = await window.supabase.from('users').select(`*, orders (id)`).order('created_at', { ascending: false });
+        const { data, error } = await window.supabase
+            .from('users')
+            .select('id, email, full_name, is_admin, created_at, orders(id)')
+            .order('created_at', { ascending: false });
+
         if (error) { console.error(error); return; }
         this.users = data || [];
-        this.renderUsers();
+        this.renderUsersTable();
     }
 
-    renderUsers() {
+    renderUsersTable() {
         const tbody = document.getElementById('users-table-body');
-        if (!this.users.length) { tbody.innerHTML = '<tr><td colspan="7">No users found</td></tr>'; return; }
-        let html = '';
-        this.users.forEach(user => {
-            html += `<tr>
-                <td>${user.id.substring(0,8)}...</td>
-                <td>${user.email}</td>
-                <td>${user.full_name || 'N/A'}</td>
-                <td>${new Date(user.created_at).toLocaleDateString()}</td>
-                <td>${user.orders?.length || 0}</td>
-                <td><span class="status-badge ${user.is_admin ? 'status-delivered' : 'status-pending'}">${user.is_admin ? 'Admin' : 'User'}</span></td>
-                <td><button class="btn-outline btn-sm" data-user-id="${user.id}" data-make-admin="${!user.is_admin}">${user.is_admin ? 'Remove Admin' : 'Make Admin'}</button></td>
-            </tr>`;
-        });
-        tbody.innerHTML = html;
-        tbody.querySelectorAll('button[data-user-id]').forEach(btn => {
-            btn.addEventListener('click', () => this.toggleAdmin(btn.dataset.userId, btn.dataset.makeAdmin === 'true'));
+        if (!this.users.length) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-light);">No users found.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = this.users.map(u => `
+            <tr>
+                <td style="font-size:0.75rem;color:var(--text-light);">${u.id.substring(0,8)}…</td>
+                <td style="font-size:0.85rem;">${escapeHtml(u.email)}</td>
+                <td style="font-size:0.85rem;">${escapeHtml(u.full_name || '—')}</td>
+                <td style="font-size:0.82rem;">${new Date(u.created_at).toLocaleDateString('en-ZA')}</td>
+                <td style="font-size:0.85rem;">${u.orders?.length ?? 0}</td>
+                <td><span class="status-badge ${u.is_admin ? 'status-delivered' : 'status-pending'}">${u.is_admin ? 'Admin' : 'User'}</span></td>
+                <td>
+                    <button class="btn-outline btn-sm" data-uid="${u.id}" data-make="${!u.is_admin}">
+                        ${u.is_admin ? 'Remove Admin' : 'Make Admin'}
+                    </button>
+                </td>
+            </tr>`).join('');
+
+        tbody.querySelectorAll('[data-uid]').forEach(btn => {
+            btn.addEventListener('click', () => this.toggleAdmin(btn.dataset.uid, btn.dataset.make === 'true'));
         });
     }
 
     async toggleAdmin(userId, makeAdmin) {
+        const { error } = await window.supabase.from('users').update({ is_admin: makeAdmin }).eq('id', userId);
+        if (error) { alert('Error: ' + error.message); return; }
+        await this.loadUsers();
+    }
+
+    // ========== ANALYTICS ==========
+    async loadAnalytics() {
+        await this.loadChartLibs();
+        await this.buildAnalyticsDashboard();
+    }
+
+    async loadChartLibs() {
+        if (typeof Chart === 'undefined') {
+            await new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+                s.onload = resolve; s.onerror = reject;
+                document.head.appendChild(s);
+            });
+        }
+        if (typeof XLSX === 'undefined') {
+            await new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = 'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js';
+                s.onload = resolve; s.onerror = reject;
+                document.head.appendChild(s);
+            });
+        }
+    }
+
+    async buildAnalyticsDashboard() {
+        // Destroy any existing charts
+        Object.values(this.charts).forEach(c => { try { c.destroy(); } catch(e){} });
+        this.charts = {};
+
+        const [kpis, salesData, statusData, topData] = await Promise.all([
+            this.getKPIs(),
+            this.getSalesTimeSeries(),
+            this.getOrderStatusDistribution(),
+            this.getTopProductsData(),
+        ]);
+
+        const forecast = this.calculateForecast(salesData);
+        const totalForecast = forecast.forecastValues.reduce((a, b) => a + b, 0);
+
+        // Render into sales-chart container (full width)
+        const container = document.getElementById('sales-chart');
+        container.style.gridColumn = '1 / -1'; // span full analytics grid
+
+        // Replace top-products panel too
+        const topContainer = document.getElementById('top-products');
+
+        // KPI cards
+        container.innerHTML = `
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem;">
+                ${this.kpiCard('30-Day Revenue', fmt(kpis.totalRevenue))}
+                ${this.kpiCard('Paid Orders (30d)', kpis.orderCount)}
+                ${this.kpiCard('Avg Order Value', fmt(kpis.avgOrderValue))}
+                ${this.kpiCard('Total Products', kpis.totalProducts ?? 0)}
+                ${this.kpiCard('All-Time Orders', kpis.totalOrdersAll ?? 0)}
+            </div>
+
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+                <div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:1.5rem;">
+                    <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:400;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">Sales Trend — Last 30 Days</div>
+                    <canvas id="salesTrendChart" height="110"></canvas>
+                </div>
+                <div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:1.5rem;">
+                    <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:400;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">Order Status</div>
+                    <canvas id="orderStatusChart" height="140"></canvas>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+                <div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:1.5rem;">
+                    <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:400;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">Top 5 Products by Units Sold (90 days)</div>
+                    <canvas id="topProductsChart" height="110"></canvas>
+                </div>
+                <div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:1.5rem;">
+                    <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:400;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">7-Day Sales Forecast</div>
+                    <canvas id="forecastChart" height="140"></canvas>
+                    <div style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-mid);line-height:1.6;">
+                        Projected 7-day revenue: <strong style="color:var(--primary);">${fmt(totalForecast)}</strong><br>
+                        <span style="font-size:0.72rem;color:var(--text-light);">Linear regression on last 14 days.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:1.5rem;margin-bottom:1.5rem;">
+                <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:400;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">Prescriptive Insights</div>
+                <div id="prescriptiveInsights"></div>
+            </div>
+
+            <div style="text-align:right;">
+                <button id="exportExcelBtn" class="btn-primary" style="background:var(--dark);color:var(--gold);">Download Excel Report</button>
+            </div>
+        `;
+
+        // Clear the separate top-products panel (now embedded above)
+        topContainer.innerHTML = '<p style="font-size:0.82rem;color:var(--text-light);">See analytics charts above.</p>';
+
+        // Render all charts
+        this.renderSalesTrendChart(salesData);
+        this.renderOrderStatusChart(statusData);
+        this.renderTopProductsChart(topData);
+        this.renderForecastChart(forecast);
+        await this.renderPrescriptiveInsights(salesData, topData, statusData);
+
+        document.getElementById('exportExcelBtn')?.addEventListener('click', () => this.exportToExcel());
+    }
+
+    kpiCard(label, value) {
+        return `
+            <div style="background:var(--cream);border:1px solid var(--border);border-top:2px solid var(--gold);border-radius:4px;padding:1rem;">
+                <div style="font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-light);margin-bottom:0.4rem;">${label}</div>
+                <div style="font-family:'Cormorant Garamond',serif;font-size:1.7rem;font-weight:400;color:var(--primary);">${value}</div>
+            </div>`;
+    }
+
+    async getKPIs() {
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 864e5).toISOString();
+
+        const { data: paidOrders } = await window.supabase
+            .from('orders')
+            .select('total_amount')
+            .eq('payment_status', 'paid')
+            .gte('created_at', thirtyDaysAgo);
+
+        const totalRevenue = (paidOrders || []).reduce((s, o) => s + parseFloat(o.total_amount || 0), 0);
+        const orderCount = paidOrders?.length || 0;
+        const avgOrderValue = orderCount ? totalRevenue / orderCount : 0;
+
+        const { count: totalProducts } = await window.supabase.from('products').select('*', { count: 'exact', head: true });
+        const { count: totalOrdersAll } = await window.supabase.from('orders').select('*', { count: 'exact', head: true });
+
+        return { totalRevenue, orderCount, avgOrderValue, totalProducts, totalOrdersAll };
+    }
+
+    async getSalesTimeSeries() {
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 864e5).toISOString();
+        const { data } = await window.supabase
+            .from('orders')
+            .select('created_at, total_amount')
+            .eq('payment_status', 'paid')
+            .gte('created_at', thirtyDaysAgo)
+            .order('created_at', { ascending: true });
+
+        if (!data?.length) return { dates: [], amounts: [] };
+
+        const daily = {};
+        data.forEach(o => {
+            const d = o.created_at.slice(0, 10);
+            daily[d] = (daily[d] || 0) + parseFloat(o.total_amount || 0);
+        });
+
+        const dates   = Object.keys(daily).sort();
+        const amounts = dates.map(d => parseFloat(daily[d].toFixed(2)));
+        return { dates, amounts };
+    }
+
+    renderSalesTrendChart(salesData) {
+        const ctx = document.getElementById('salesTrendChart')?.getContext('2d');
+        if (!ctx) return;
+        this.charts.salesTrend = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: salesData.dates.map(d => d.slice(5)),
+                datasets: [{
+                    label: 'Daily Sales (R)',
+                    data: salesData.amounts,
+                    borderColor: '#8B7355',
+                    backgroundColor: 'rgba(139,115,85,0.08)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    tension: 0.35,
+                    fill: true,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { ticks: { callback: v => `R${v}` }, grid: { color: 'rgba(0,0,0,0.04)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    async getOrderStatusDistribution() {
+        const { data } = await window.supabase.from('orders').select('status');
+        if (!data?.length) return {};
+        const counts = {};
+        data.forEach(o => { counts[o.status] = (counts[o.status] || 0) + 1; });
+        return counts;
+    }
+
+    renderOrderStatusChart(statusData) {
+        const ctx = document.getElementById('orderStatusChart')?.getContext('2d');
+        if (!ctx) return;
+        const labels = Object.keys(statusData);
+        if (!labels.length) return;
+        this.charts.orderStatus = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels,
+                datasets: [{
+                    data: Object.values(statusData),
+                    backgroundColor: ['#D4AF37','#8B7355','#7A9B76','#4a6fa5','#c44'],
+                    borderWidth: 2,
+                    borderColor: '#FAF7F2',
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }
+            }
+        });
+    }
+
+    async getTopProductsData() {
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 864e5).toISOString();
+        const { data } = await window.supabase
+            .from('order_items')
+            .select('quantity, products(name)')
+            .gte('created_at', ninetyDaysAgo);
+
+        if (!data?.length) return { names: [], quantities: [] };
+
+        const qty = {};
+        data.forEach(item => {
+            const name = item.products?.name;
+            if (name) qty[name] = (qty[name] || 0) + (item.quantity || 1);
+        });
+
+        const sorted = Object.entries(qty).sort((a, b) => b[1] - a[1]).slice(0, 5);
+        return { names: sorted.map(p => p[0]), quantities: sorted.map(p => p[1]) };
+    }
+
+    renderTopProductsChart(data) {
+        const ctx = document.getElementById('topProductsChart')?.getContext('2d');
+        if (!ctx) return;
+        if (!data.names.length) {
+            ctx.canvas.parentElement.innerHTML += '<p style="font-size:0.82rem;color:var(--text-light);margin-top:0.5rem;">No order item data yet.</p>';
+            return;
+        }
+        this.charts.topProducts = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.names,
+                datasets: [{
+                    label: 'Units Sold',
+                    data: data.quantities,
+                    backgroundColor: 'rgba(139,115,85,0.75)',
+                    borderColor: '#8B7355',
+                    borderWidth: 1,
+                    borderRadius: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { stepSize: 1 } },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    calculateForecast(salesData) {
+        const amounts = salesData.amounts;
+        if (amounts.length < 3) {
+            return { forecastDays: [1,2,3,4,5,6,7], forecastValues: Array(7).fill(0) };
+        }
+        const recent = amounts.slice(-Math.min(14, amounts.length));
+        const n = recent.length;
+        const x = Array.from({ length: n }, (_, i) => i);
+        const sumX  = x.reduce((a, b) => a + b, 0);
+        const sumY  = recent.reduce((a, b) => a + b, 0);
+        const sumXY = x.reduce((a, b, i) => a + b * recent[i], 0);
+        const sumX2 = x.reduce((a, b) => a + b * b, 0);
+        const denom = n * sumX2 - sumX * sumX;
+        const slope     = denom !== 0 ? (n * sumXY - sumX * sumY) / denom : 0;
+        const intercept = (sumY - slope * sumX) / n;
+        const forecastValues = [1,2,3,4,5,6,7].map(d =>
+            parseFloat(Math.max(0, intercept + slope * (n + d)).toFixed(2))
+        );
+        return { forecastDays: [1,2,3,4,5,6,7], forecastValues };
+    }
+
+    renderForecastChart(forecast) {
+        const ctx = document.getElementById('forecastChart')?.getContext('2d');
+        if (!ctx) return;
+        this.charts.forecast = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: forecast.forecastDays.map(d => `Day +${d}`),
+                datasets: [{
+                    label: 'Forecast (R)',
+                    data: forecast.forecastValues,
+                    borderColor: '#D4AF37',
+                    backgroundColor: 'rgba(212,175,55,0.08)',
+                    borderDash: [5, 4],
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    tension: 0.2,
+                    fill: true,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: c => fmt(c.raw) } }
+                },
+                scales: {
+                    y: { ticks: { callback: v => `R${v}` }, grid: { color: 'rgba(0,0,0,0.04)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    async renderPrescriptiveInsights(salesData, topData, statusData) {
+        const { data: lowStock } = await window.supabase
+            .from('products')
+            .select('name, stock_quantity')
+            .lt('stock_quantity', 10)
+            .eq('is_active', true);
+
+        const insights = [];
+
+        // Low stock
+        if (lowStock?.length) {
+            insights.push(`<strong>Restock needed:</strong> ${lowStock.map(p => `${escapeHtml(p.name)} (${p.stock_quantity} left)`).join(', ')}.`);
+        } else {
+            insights.push('All product stock levels are healthy.');
+        }
+
+        // Cancellation rate
+        const total = Object.values(statusData).reduce((a, b) => a + b, 0);
+        const cancelled = statusData.cancelled || 0;
+        if (total > 0) {
+            const rate = ((cancelled / total) * 100).toFixed(1);
+            if (parseFloat(rate) > 10) {
+                insights.push(`<strong>High cancellation rate (${rate}%)</strong> — review your payment or fulfilment process.`);
+            } else {
+                insights.push(`Cancellation rate is healthy at ${rate}%.`);
+            }
+        }
+
+        // Best seller promo
+        if (topData.names[0]) {
+            insights.push(`Consider promoting <strong>"${escapeHtml(topData.names[0])}"</strong> — your best-selling product.`);
+        }
+
+        // Peak day
+        const peakDay = this.getPeakDay(salesData);
+        insights.push(`Sales peak on <strong>${peakDay}</strong>s — ideal day for campaigns or flash deals.`);
+
+        const el = document.getElementById('prescriptiveInsights');
+        if (el) el.innerHTML = `<ul style="padding-left:1.2rem;line-height:2;">${insights.map(i => `<li style="font-size:0.88rem;">${i}</li>`).join('')}</ul>`;
+    }
+
+    getPeakDay(salesData) {
+        if (!salesData.dates.length) return 'Friday';
+        const daySums = {};
+        salesData.dates.forEach((d, i) => {
+            const day = new Date(d).toLocaleDateString('en', { weekday: 'long' });
+            daySums[day] = (daySums[day] || 0) + salesData.amounts[i];
+        });
+        return Object.entries(daySums).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Friday';
+    }
+
+    // ========== EXCEL EXPORT ==========
+    async exportToExcel() {
         try {
-            const { error } = await window.supabase.from('users').update({ is_admin: makeAdmin }).eq('id', userId);
-            if (error) throw error;
-            this.loadUsers();
-            alert(`User ${makeAdmin ? 'promoted to admin' : 'removed from admin'}`);
-        } catch (error) { console.error(error); alert('Error updating user role'); }
+            const [{ data: orders }, { data: products }, { data: users }] = await Promise.all([
+                window.supabase.from('orders').select('*'),
+                window.supabase.from('products').select('*'),
+                window.supabase.from('users').select('id, email, full_name, is_admin, created_at'),
+            ]);
+            const kpis = await this.getKPIs();
+            const summary = [
+                { Metric: '30-Day Revenue',      Value: fmt(kpis.totalRevenue) },
+                { Metric: 'Paid Orders (30d)',    Value: kpis.orderCount },
+                { Metric: 'Average Order Value',  Value: fmt(kpis.avgOrderValue) },
+                { Metric: 'Total Products',       Value: kpis.totalProducts },
+                { Metric: 'All-Time Orders',      Value: kpis.totalOrdersAll },
+            ];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(orders || []),   'Orders');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(products || []), 'Products');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(users || []),    'Users');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary),        'Analytics_Summary');
+            XLSX.writeFile(wb, `patriocele_analytics_${new Date().toISOString().slice(0,10)}.xlsx`);
+        } catch (err) {
+            console.error('Export error:', err);
+            alert('Export failed: ' + err.message);
+        }
     }
 }
 
-// Helper function
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
-}
-
-// Initialize
+// ========== INIT ==========
 let adminManager;
 document.addEventListener('DOMContentLoaded', () => {
     adminManager = new AdminManager();

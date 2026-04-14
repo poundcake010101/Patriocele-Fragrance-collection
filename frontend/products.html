@@ -6,6 +6,85 @@
     <title>Our Perfumes - Patriocele Fragrance Collection</title>
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        #product-detail-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(44,35,24,0.72);
+            backdrop-filter: blur(3px);
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .pdm-inner {
+            background: var(--white);
+            border-radius: 4px;
+            border-top: 2px solid var(--gold);
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            position: relative;
+            animation: pdmIn 0.25s ease both;
+        }
+        @keyframes pdmIn {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .pdm-gallery {
+            padding: 2rem;
+            background: var(--cream);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .pdm-main-wrap { position: relative; }
+        #pdm-main-image { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 2px; display: block; }
+        .pdm-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            background: var(--dark); color: var(--gold); border: none;
+            width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+            font-size: 1.2rem; display: flex; align-items: center; justify-content: center;
+            opacity: 0.85; transition: opacity 0.2s; z-index: 2;
+        }
+        .pdm-arrow:hover { opacity: 1; }
+        #pdm-prev { left: 8px; }
+        #pdm-next { right: 8px; }
+        #pdm-thumbnails { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .pdm-info { padding: 2rem 2.5rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
+        #pdm-close {
+            position: absolute; top: 1rem; right: 1rem; background: none; border: none;
+            font-size: 1.4rem; cursor: pointer; color: var(--text-light);
+            width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; transition: background 0.2s, color 0.2s; z-index: 3;
+        }
+        #pdm-close:hover { background: var(--cream); color: var(--text-dark); }
+        #pdm-name { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 300; color: var(--text-dark); line-height: 1.2; margin: 0.25rem 0 0; }
+        #pdm-brand { font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-light); }
+        #pdm-price { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 400; color: var(--primary); }
+        .pdm-section-label { font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-light); font-weight: 500; margin-bottom: 0.5rem; }
+        #pdm-sizes { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        #pdm-add-to-cart {
+            width: 100%; padding: 1rem; background: var(--dark); color: var(--gold);
+            border: none; border-radius: 2px; font-family: 'Jost', sans-serif;
+            font-size: 0.78rem; font-weight: 500; letter-spacing: 0.25em; text-transform: uppercase;
+            cursor: pointer; margin-top: auto; transition: background 0.2s, transform 0.15s;
+        }
+        #pdm-add-to-cart:hover:not(:disabled) { background: #3a2e22; transform: translateY(-1px); }
+        #pdm-add-to-cart:disabled { opacity: 0.6; cursor: not-allowed; }
+        #pdm-description { font-size: 0.88rem; color: var(--text-mid); line-height: 1.75; }
+        #pdm-notes { display: flex; flex-direction: column; gap: 0.75rem; }
+        #pdm-occasions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .pdm-divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+        @media (max-width: 640px) {
+            .pdm-inner { grid-template-columns: 1fr; }
+            .pdm-gallery, .pdm-info { padding: 1.5rem; }
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -28,7 +107,6 @@
         </div>
     </nav>
 
-    <!-- Page header banner -->
     <div style="background: var(--dark); padding: 3rem 2rem; text-align: center;">
         <div style="font-size: 0.68rem; letter-spacing: 0.35em; color: rgba(212,175,55,0.6); text-transform: uppercase; margin-bottom: 0.75rem; font-weight: 500;">The Collection</div>
         <h1 style="font-family: 'Cormorant Garamond', serif; font-size: 2.8rem; font-weight: 300; color: var(--cream); letter-spacing: 0.05em;">Our Fragrance Collection</h1>
@@ -37,22 +115,61 @@
 
     <div class="container">
         <div class="filters" style="margin-top: 2rem;">
-            <select id="category-filter">
-                <option value="">All Categories</option>
-            </select>
-            <select id="brand-filter">
-                <option value="">All Brands</option>
-            </select>
+            <select id="category-filter"><option value="">All Categories</option></select>
+            <select id="brand-filter"><option value="">All Brands</option></select>
             <input type="text" id="search-input" placeholder="Search fragrances...">
         </div>
+        <div class="products-grid" id="products-grid"></div>
+    </div>
 
-        <div class="products-grid" id="products-grid">
-            <!-- Products loaded by JS -->
+    <!-- PRODUCT DETAIL MODAL -->
+    <div id="product-detail-modal">
+        <div class="pdm-inner">
+            <button id="pdm-close" title="Close">&times;</button>
+            <div class="pdm-gallery">
+                <div class="pdm-main-wrap">
+                    <img id="pdm-main-image" src="" alt="Product image">
+                    <button id="pdm-prev" class="pdm-arrow">&#8249;</button>
+                    <button id="pdm-next" class="pdm-arrow">&#8250;</button>
+                </div>
+                <div id="pdm-thumbnails"></div>
+            </div>
+            <div class="pdm-info">
+                <div>
+                    <div id="pdm-brand"></div>
+                    <h2 id="pdm-name"></h2>
+                </div>
+                <hr class="pdm-divider">
+                <div id="pdm-price"></div>
+                <div>
+                    <div class="pdm-section-label">Select Size</div>
+                    <div id="pdm-sizes"></div>
+                </div>
+                <hr class="pdm-divider">
+                <div>
+                    <div class="pdm-section-label">About This Fragrance</div>
+                    <p id="pdm-description"></p>
+                </div>
+                <div>
+                    <div class="pdm-section-label">Fragrance Notes</div>
+                    <div id="pdm-notes"></div>
+                </div>
+                <div>
+                    <div class="pdm-section-label">Occasion</div>
+                    <div id="pdm-occasions"></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <div class="pdm-section-label" style="margin:0;">Intensity</div>
+                    <span id="pdm-intensity" style="font-size:0.72rem;letter-spacing:0.15em;text-transform:uppercase;background:var(--cream);border:1px solid var(--border);color:var(--text-mid);padding:0.2rem 0.6rem;border-radius:2px;"></span>
+                </div>
+                <button id="pdm-add-to-cart">Add to Cart</button>
+            </div>
         </div>
     </div>
 
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/home.js"></script>
     <script src="js/products.js"></script>
 </body>
 </html>

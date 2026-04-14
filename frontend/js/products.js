@@ -8,7 +8,6 @@ class ProductManager {
     }
 
     async init() {
-        console.log('🔄 Initializing ProductManager...');
         await this.loadCategories();
         await this.loadBrands();
         await this.loadProducts();
@@ -17,200 +16,198 @@ class ProductManager {
     }
 
     async loadCategories() {
-        console.log('📂 Loading categories...');
         try {
-            const { data, error } = await window.supabase
-                .from('categories')
-                .select('*')
-                .order('name');
-
+            const { data, error } = await window.supabase.from('categories').select('*').order('name');
             if (error) throw error;
-
             this.categories = data || [];
             this.renderCategories();
-        } catch (error) {
-            console.error('❌ Error loading categories:', error);
-        }
+        } catch (err) { console.error('Error loading categories:', err); }
     }
 
     async loadBrands() {
-        console.log('📂 Loading brands...');
         try {
-            const { data, error } = await window.supabase
-                .from('brands')
-                .select('*')
-                .order('name');
-
+            const { data, error } = await window.supabase.from('brands').select('*').order('name');
             if (error) throw error;
-
             this.brands = data || [];
             this.renderBrands();
-        } catch (error) {
-            console.error('❌ Error loading brands:', error);
-        }
+        } catch (err) { console.error('Error loading brands:', err); }
     }
 
     async loadProducts(filters = {}) {
-        console.log('📂 Loading products...', filters);
         try {
             let query = window.supabase
                 .from('products')
-                .select(`
-                    *,
-                    brands(name),
-                    categories(name)
-                `)
+                .select('*, brands(name), categories(name)')
                 .eq('is_active', true);
 
-            if (filters.category) {
-                query = query.eq('category_id', filters.category);
-            }
-
-            if (filters.brand) {
-                query = query.eq('brand_id', filters.brand);
-            }
-
-            if (filters.search) {
-                query = query.ilike('name', `%${filters.search}%`);
-            }
+            if (filters.category) query = query.eq('category_id', filters.category);
+            if (filters.brand)    query = query.eq('brand_id', filters.brand);
+            if (filters.search)   query = query.ilike('name', `%${filters.search}%`);
 
             const { data, error } = await query;
-
             if (error) throw error;
-
             this.products = data || [];
             this.renderProducts();
-        } catch (error) {
-            console.error('❌ Error loading products:', error);
-        }
+        } catch (err) { console.error('Error loading products:', err); }
     }
 
     renderCategories() {
         const select = document.getElementById('category-filter');
         if (!select) return;
-        
-        // Clear existing options except the first one
-        while (select.options.length > 1) {
-            select.remove(1);
-        }
-
-        this.categories.forEach(category => {
-            const option = document.createElement('option');
-            option.value = category.id;
-            option.textContent = category.name;
-            select.appendChild(option);
+        while (select.options.length > 1) select.remove(1);
+        this.categories.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id; opt.textContent = c.name;
+            select.appendChild(opt);
         });
     }
 
     renderBrands() {
         const select = document.getElementById('brand-filter');
         if (!select) return;
-        
-        // Clear existing options except the first one
-        while (select.options.length > 1) {
-            select.remove(1);
-        }
-
-        this.brands.forEach(brand => {
-            const option = document.createElement('option');
-            option.value = brand.id;
-            option.textContent = brand.name;
-            select.appendChild(option);
+        while (select.options.length > 1) select.remove(1);
+        this.brands.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b.id; opt.textContent = b.name;
+            select.appendChild(opt);
         });
     }
 
     renderProducts() {
         const grid = document.getElementById('products-grid');
         if (!grid) return;
-        
-        console.log('🎨 Rendering products:', this.products.length);
 
-        if (this.products.length === 0) {
+        if (!this.products.length) {
             grid.innerHTML = `
-                <div style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
-                    <p style="font-size: 1.2rem; color: var(--text-light);">No products found</p>
-                    <p style="margin-top: 0.5rem;">Try adjusting your filters</p>
-                </div>
-            `;
+                <div style="grid-column:1/-1;text-align:center;padding:4rem 2rem;">
+                    <div style="font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:300;color:var(--text-mid);margin-bottom:0.75rem;">No products found</div>
+                    <p style="font-size:0.85rem;color:var(--text-light);">Try adjusting your filters</p>
+                </div>`;
             return;
         }
 
-        let html = '';
-        this.products.forEach(product => {
-            const productCard = this.createProductCard(product);
-            html += productCard.outerHTML || productCard;
-        });
-
-        grid.innerHTML = html;
+        grid.innerHTML = this.products.map(p => this._cardHTML(p)).join('');
     }
 
-    createProductCard(product) {
-        const card = document.createElement('div');
-        card.className = 'product-card';
-        
-        const mainImage = product.images?.[0] || 'https://via.placeholder.com/300x300?text=Perfume';
-        const sizes = product.size_variants ? Object.keys(product.size_variants) : [];
-        const firstSize = sizes.length > 0 ? sizes[0] : '50ml';
-        const firstPrice = firstSize ? product.size_variants[firstSize] : product.price;
+    _cardHTML(p) {
+        const img   = p.images?.[0] || 'https://via.placeholder.com/400x400?text=Perfume';
+        const brand = p.brands?.name || '';
+        const price = this._basePrice(p);
+        const size  = this._baseSize(p);
 
-        card.innerHTML = `
-            <img src="${mainImage}" alt="${product.name}" class="product-image">
-            <h3>${product.name}</h3>
-            <p class="brand">${product.brands?.name || 'Unknown Brand'}</p>
-            <div class="fragrance-notes">
-                ${this.renderFragranceNotes(product.fragrance_notes)}
+        return `
+            <div class="product-card home-product-card" data-product-id="${p.id}" style="cursor:pointer;">
+                <div style="position:relative;overflow:hidden;border-radius:2px;margin-bottom:1rem;">
+                    <img src="${img}" 
+                         alt="${p.name}" 
+                         class="product-image home-card-img"
+                         style="width:100%;height:240px;object-fit:cover;display:block;transition:transform 0.4s ease;">
+                    <div style="position:absolute;inset:0;background:rgba(44,35,24,0);transition:background 0.3s;" class="home-card-overlay"></div>
+                </div>
+                <div style="padding:0 0.25rem;">
+                    <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:400;color:var(--text-dark);margin-bottom:0.2rem;text-align:left;">${p.name}</h3>
+                    <div style="font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-light);margin-bottom:0.75rem;">${brand}</div>
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;">
+                        <div>
+                            <span style="font-size:1.1rem;font-weight:500;color:var(--primary);">R${parseFloat(price).toFixed(2)}</span>
+                            <span style="font-size:0.72rem;color:var(--text-light);margin-left:0.4rem;">${size}</span>
+                        </div>
+                        ${p.intensity ? `<span style="font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;background:var(--cream);border:1px solid var(--border);color:var(--text-mid);padding:0.2rem 0.5rem;border-radius:2px;">${p.intensity}</span>` : ''}
+                    </div>
+                </div>
             </div>
-            <div class="price">R${firstPrice}</div>
-            <div class="size-variants">
-                ${this.renderSizeVariants(product.size_variants)}
-            </div>
-            <button class="btn-primary add-to-cart-btn" 
-                    data-product-id="${product.id}"
-                    data-size-variant="${firstSize}">
-                Add to Cart
-            </button>
         `;
-
-        return card;
     }
 
-    renderFragranceNotes(notes) {
-        if (!notes) return '';
-        
-        let html = '<div class="notes-preview">';
-        if (notes.top && notes.top.length > 0) {
-            html += `<strong>Top:</strong> ${notes.top.join(', ')}<br>`;
+    _basePrice(p) {
+        if (p.size_variants && Object.keys(p.size_variants).length) {
+            const sizes = Object.keys(p.size_variants);
+            const s30 = sizes.find(s => s.includes('30'));
+            return p.size_variants[s30 || sizes[0]];
         }
-        if (notes.middle && notes.middle.length > 0) {
-            html += `<strong>Middle:</strong> ${notes.middle.join(', ')}`;
-        }
-        html += '</div>';
-        return html;
+        return p.price || 0;
     }
 
-    renderSizeVariants(sizeVariants) {
-        if (!sizeVariants) return '';
-        
-        let html = '<select class="size-select">';
-        Object.keys(sizeVariants).forEach(size => {
-            html += `<option value="${size}">${size} - R${sizeVariants[size]}</option>`;
+    _baseSize(p) {
+        if (p.size_variants && Object.keys(p.size_variants).length) {
+            const sizes = Object.keys(p.size_variants);
+            return sizes.find(s => s.includes('30')) || sizes[0];
+        }
+        return '50ml';
+    }
+
+    setupEventListeners() {
+        if (this.eventListenersAttached) return;
+
+        // Card click → detail modal
+        document.addEventListener('click', e => {
+            const card = e.target.closest('.home-product-card');
+            if (!card) return;
+            const productId = card.dataset.productId;
+            const product   = this.products.find(p => String(p.id) === String(productId));
+            if (product && window.ProductDetailModal) window.ProductDetailModal.open(product);
         });
-        html += '</select>';
-        return html;
+
+        // Hover effects
+        document.addEventListener('mouseover', e => {
+            const card = e.target.closest('.home-product-card');
+            if (!card) return;
+            const img     = card.querySelector('.home-card-img');
+            const overlay = card.querySelector('.home-card-overlay');
+            if (img)     img.style.transform = 'scale(1.04)';
+            if (overlay) overlay.style.background = 'rgba(44,35,24,0.12)';
+        });
+
+        document.addEventListener('mouseout', e => {
+            const card = e.target.closest('.home-product-card');
+            if (!card) return;
+            const img     = card.querySelector('.home-card-img');
+            const overlay = card.querySelector('.home-card-overlay');
+            if (img)     img.style.transform = 'scale(1)';
+            if (overlay) overlay.style.background = 'rgba(44,35,24,0)';
+        });
+
+        // Modal wiring (close, arrows, add to cart, keyboard)
+        document.getElementById('pdm-close')?.addEventListener('click', () => window.ProductDetailModal.close());
+        document.getElementById('product-detail-modal')?.addEventListener('click', e => {
+            if (e.target === e.currentTarget) window.ProductDetailModal.close();
+        });
+        document.getElementById('pdm-prev')?.addEventListener('click', e => { e.stopPropagation(); window.ProductDetailModal.prev(); });
+        document.getElementById('pdm-next')?.addEventListener('click', e => { e.stopPropagation(); window.ProductDetailModal.next(); });
+
+        document.getElementById('pdm-add-to-cart')?.addEventListener('click', async () => {
+            const btn = document.getElementById('pdm-add-to-cart');
+            await this._addToCart(btn.dataset.productId, btn.dataset.sizeVariant, btn);
+        });
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape')      window.ProductDetailModal.close();
+            if (e.key === 'ArrowLeft')   window.ProductDetailModal.prev();
+            if (e.key === 'ArrowRight')  window.ProductDetailModal.next();
+        });
+
+        // Filters
+        document.getElementById('category-filter')?.addEventListener('change', () => this.applyFilters());
+        document.getElementById('brand-filter')?.addEventListener('change',    () => this.applyFilters());
+        document.getElementById('search-input')?.addEventListener('input',     () => this.applyFilters());
+
+        this.eventListenersAttached = true;
     }
 
-    async addToCart(productId, sizeVariant = '50ml') {
+    async _addToCart(productId, sizeVariant, btn) {
         const user = window.authManager?.getCurrentUser();
-        
         if (!user) {
-            alert('Please login to add items to cart');
+            alert('Please login to add items to cart.');
             window.location.href = 'login.html';
             return;
         }
 
+        const original = btn.textContent;
+        btn.textContent = 'Adding…';
+        btn.disabled    = true;
+
         try {
-            // Check if item already in cart
-            const { data: existingItem } = await window.supabase
+            const { data: existing } = await window.supabase
                 .from('cart_items')
                 .select('id, quantity')
                 .eq('user_id', user.id)
@@ -218,157 +215,62 @@ class ProductManager {
                 .eq('size_variant', sizeVariant)
                 .single();
 
-            if (existingItem) {
-                // Update quantity
-                const { error } = await window.supabase
-                    .from('cart_items')
-                    .update({ quantity: existingItem.quantity + 1 })
-                    .eq('id', existingItem.id);
-
-                if (error) throw error;
+            if (existing) {
+                await window.supabase.from('cart_items')
+                    .update({ quantity: existing.quantity + 1 })
+                    .eq('id', existing.id);
             } else {
-                // Add new item
-                const { error } = await window.supabase
-                    .from('cart_items')
-                    .insert([
-                        {
-                            user_id: user.id,
-                            product_id: parseInt(productId),
-                            quantity: 1,
-                            size_variant: sizeVariant
-                        }
-                    ]);
-
-                if (error) throw error;
+                await window.supabase.from('cart_items')
+                    .insert([{ user_id: user.id, product_id: parseInt(productId), quantity: 1, size_variant: sizeVariant }]);
             }
 
-            alert('Product added to cart!');
-            
-            // Update cart count in navbar
-            if (window.authManager) {
-                window.authManager.updateCartCount();
-            }
-            
-        } catch (error) {
-            console.error('❌ Error adding to cart:', error);
-            alert('Error adding product to cart: ' + error.message);
+            btn.textContent = 'Added!';
+            btn.style.background = 'var(--accent-green)';
+            window.authManager?.updateCartCount?.();
+
+            setTimeout(() => {
+                btn.textContent = original;
+                btn.style.background = '';
+                btn.disabled = false;
+            }, 1500);
+        } catch (err) {
+            console.error('Cart error:', err);
+            btn.textContent = original;
+            btn.disabled    = false;
+            alert('Error adding to cart: ' + err.message);
         }
-    }
-
-    setupEventListeners() {
-        // Only attach listeners once
-        if (this.eventListenersAttached) {
-            console.log('✅ Product manager event listeners already attached, skipping...');
-            return;
-        }
-
-        console.log('🔧 Setting up product manager event listeners...');
-
-        // Handle filter changes
-        const categoryFilter = document.getElementById('category-filter');
-        const brandFilter = document.getElementById('brand-filter');
-        const searchInput = document.getElementById('search-input');
-
-        if (categoryFilter) {
-            categoryFilter.addEventListener('change', (e) => {
-                this.applyFilters();
-            });
-        }
-
-        if (brandFilter) {
-            brandFilter.addEventListener('change', (e) => {
-                this.applyFilters();
-            });
-        }
-
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                this.applyFilters();
-            });
-        }
-
-        // Handle add to cart clicks with event delegation
-        document.addEventListener('click', async (e) => {
-            if (e.target.classList.contains('add-to-cart-btn')) {
-                e.preventDefault();
-                e.stopPropagation(); // Prevent multiple executions
-                
-                console.log('🛒 Add to cart clicked - product manager');
-                await this.addToCart(
-                    e.target.dataset.productId,
-                    e.target.dataset.sizeVariant
-                );
-            }
-        });
-
-        // Handle size selection changes
-        document.addEventListener('change', async (e) => {
-            if (e.target.classList.contains('size-select')) {
-                const productCard = e.target.closest('.product-card');
-                const productId = productCard?.dataset?.productId;
-                const addToCartBtn = productCard?.querySelector('.add-to-cart-btn');
-                
-                if (productId && addToCartBtn) {
-                    addToCartBtn.dataset.sizeVariant = e.target.value;
-                    console.log('📦 Size changed to:', e.target.value);
-                }
-            }
-        });
-
-        this.eventListenersAttached = true;
-        console.log('✅ Product manager event listeners attached');
     }
 
     applyFilters() {
-        const filters = {
+        this.loadProducts({
             category: document.getElementById('category-filter')?.value || '',
-            brand: document.getElementById('brand-filter')?.value || '',
-            search: document.getElementById('search-input')?.value || ''
-        };
-
-        console.log('🔍 Applying filters:', filters);
-        this.loadProducts(filters);
+            brand:    document.getElementById('brand-filter')?.value    || '',
+            search:   document.getElementById('search-input')?.value    || '',
+        });
     }
 
     handleProductParameter() {
-        // Check if a specific product was requested via URL parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        const productId = urlParams.get('product');
-        
-        if (productId) {
-            console.log('🎯 Specific product requested:', productId);
-            // Scroll to and highlight the specific product
-            this.highlightProduct(productId);
-        }
-    }
-
-    highlightProduct(productId) {
-        // This will be called after products are rendered
+        const productId = new URLSearchParams(window.location.search).get('product');
+        if (!productId) return;
         setTimeout(() => {
-            const productCard = document.querySelector(`[data-product-id="${productId}"]`);
-            if (productCard) {
-                productCard.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'center' 
-                });
-                
-                // Add highlight effect
-                productCard.style.boxShadow = '0 0 0 3px var(--secondary-color)';
-                productCard.style.transition = 'box-shadow 0.3s ease';
-                
-                setTimeout(() => {
-                    productCard.style.boxShadow = '';
-                }, 3000);
+            const product = this.products.find(p => String(p.id) === String(productId));
+            if (product && window.ProductDetailModal) {
+                window.ProductDetailModal.open(product);
+            } else {
+                // Fallback: scroll to card
+                const card = document.querySelector(`[data-product-id="${productId}"]`);
+                if (card) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    card.style.outline = '2px solid var(--gold)';
+                    setTimeout(() => card.style.outline = '', 2500);
+                }
             }
-        }, 1000);
+        }, 800);
     }
 }
 
-// Initialize product manager when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Only initialize if we're on the products page
+document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('products-grid')) {
-        console.log('🚀 Initializing ProductManager...');
         window.productManager = new ProductManager();
     }
 });

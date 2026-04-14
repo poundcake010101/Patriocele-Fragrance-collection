@@ -37,12 +37,16 @@ class AuthManager {
             this.updateUI();
             
             // Listen for auth changes
-            window.supabase.auth.onAuthStateChange((event, session) => {
+            window.supabase.auth.onAuthStateChange(async (event, session) => {
                 console.log('🔄 Auth state changed:', event, session?.user?.email || 'No user');
                 this.currentUser = session?.user || null;
-                this.updateUI();
                 
-                // Trigger cart reload if on cart page
+                if (event === 'SIGNED_IN' && this.currentUser) {
+                    // Ensure user exists in 'users' table (for OAuth users)
+                    await this.ensureUserProfile(this.currentUser);
+                }
+                
+                this.updateUI();
                 if (window.cartManager && event === 'SIGNED_IN') {
                     window.cartManager.loadCartItems();
                 }
@@ -245,6 +249,49 @@ class AuthManager {
                 resolve(false);
             }, 5000);
         });
+    }
+
+    async signInWithProvider(provider) {
+    // Map 'twitter' to 'x' if your Supabase provider is 'twitter'
+    const supabaseProvider = provider === 'twitter' ? 'twitter' : provider;
+    const { data, error } = await window.supabase.auth.signInWithOAuth({
+        provider: supabaseProvider,
+        options: {
+            redirectTo: `${window.location.origin}/index.html`,
+            queryParams: provider === 'facebook' ? { display: 'popup' } : undefined
+        }
+    });
+    if (error) {
+        console.error('OAuth error:', error);
+        alert('Login failed: ' + error.message);
+    }
+    // The user will be redirected to the provider and then back to our site
+    }
+    async ensureUserProfile(user) {
+    if (!user) return;
+    
+    // Check if user already exists
+    const { data: existing, error: fetchError } = await window.supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+    
+        if (!existing && !fetchError?.message?.includes('JSON object requested')) {
+            // Create profile from OAuth metadata
+            const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
+            const { error: insertError } = await window.supabase
+                .from('users')
+                .insert({
+                    id: user.id,
+                    email: user.email,
+                    full_name: fullName,
+                    is_admin: false,
+                    created_at: new Date().toISOString()
+                });
+            if (insertError) console.warn('Profile creation warning:', insertError);
+            else console.log('Created user profile for OAuth user:', user.email);
+        }
     }
 }
 
